@@ -509,6 +509,20 @@ ui <- shinyUI(
                          ),
                          DT::dataTableOutput("kMEhub"),
                          downloadButton("downtbl4","download")
+                       ),
+                       tabPanel(
+                         title = "Cytoscape output",
+                         icon = icon("dna"),
+                         textInput(
+                           inputId = "threshold",
+                           label = "weight threshold",
+                           value = 0.02
+                         ),
+                         actionButton("threadd","choose the threshold"),
+                         DT::dataTableOutput("edgeFile"),
+                         DT::dataTableOutput("nodeFile"),
+                         downloadButton("downtbl5","download edgefile"),
+                         downloadButton("downtbl6","download nodefile")
                        )
                      )
                    )
@@ -893,6 +907,17 @@ server <- function(input, output, session){
     }
   )
   
+  observeEvent(
+    input$threadd,
+    {
+      exp.ds$threshold = as.numeric(input$threshold)
+      exp.ds$cyt = cytoscapeout(datExpr = exp.ds$table2,
+                                power = exp.ds$power,module = exp.ds$hubml,
+                                moduleColors = exp.ds$moduleColors,
+                                threshold = exp.ds$threshold)
+    }
+  )
+  checkAdjMat
   output$cthub = DT::renderDataTable({
     input$starthub
     if(is.null(exp.ds$hubml)){return()}
@@ -907,6 +932,20 @@ server <- function(input, output, session){
     if(is.null(exp.ds$kMEcut)){return()}
     if(is.null(exp.ds$GScut)){return()}
     exp.ds$hub.all$hub3
+  })
+  
+  output$edgeFile = DT::renderDataTable({
+    input$threadd
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$threshold)){return()}
+    exp.ds$cyt[[1]]
+  })
+  
+  output$nodeFile = DT::renderDataTable({
+    input$threadd
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$threshold)){return()}
+    exp.ds$cyt[[2]]
   })
 
 # download ----------------------------------------------------------------
@@ -1105,6 +1144,22 @@ server <- function(input, output, session){
     },
     content = function(file) {
       write.table(x = exp.ds$hub.all$hub3,file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl5 = downloadHandler(
+    filename = function() {
+      "04.cyt.edge.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$cyt[[1]],file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl6 = downloadHandler(
+    filename = function() {
+      "04.cyt.node.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$cyt[[2]],file = file,sep = "\t",row.names = F,quote = F)
     }
   )
 
