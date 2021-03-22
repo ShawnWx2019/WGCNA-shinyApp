@@ -55,7 +55,7 @@ options(scipen = 6)
 # robustY = ifelse(corType=="pearson",T,F)
 allowWGCNAThreads()
 # functions =========================
-load("/Users/shawnwang/02.MyScript/WGCNA-shinyApp/functions.Rdata")
+load("~/02.MyScript/OneStepWGCNA/03.shinyAPP/functions.Rdata")
 # 01. UI =========================
 ## logo
 customLogo <- shinyDashboardLogoDIY(
@@ -442,6 +442,21 @@ ui <- shinyUI(
                                    value = 10),
                          actionButton("adjust8","Set fig size"),
                          downloadButton("downfig8","Download")
+                       ),
+                       tabPanel(
+                         title = "MM vs GS all",height = "500px",width = "100%",
+                         icon = icon("chart-line"),
+                         jqui_resizable(
+                           plotOutput("GSMM.all")
+                         ),
+                         textInput(inputId = "width10",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height10",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust10","Set fig size"),
+                         downloadButton("downfig10","Download")
                        )
                      )
                    )
@@ -853,6 +868,19 @@ server <- function(input, output, session){
     exp.ds$Heatmap
   })
   
+  output$GSMM.all = renderPlot({
+    input$InterMode
+    if(is.null(exp.ds$st)){return()}
+    if(is.null(exp.ds$sml)){return()}
+    MMvsGSall(which.trait = exp.ds$st,
+              traitData = exp.ds$phen,
+              datExpr = exp.ds$table2,
+              moduleColors = exp.ds$moduleColors,
+              geneModuleMembership = exp.ds$MM, 
+              MEs = exp.ds$MEs_col,
+              nSamples = exp.ds$nSamples)
+  })
+  
   observeEvent(
     input$starthub,
     {
@@ -880,6 +908,9 @@ server <- function(input, output, session){
     if(is.null(exp.ds$GScut)){return()}
     exp.ds$hub.all$hub3
   })
+
+# download ----------------------------------------------------------------
+
   
   observeEvent(
     input$adjust1,
@@ -935,6 +966,13 @@ server <- function(input, output, session){
     {
       downloads$width8 <- as.numeric(input$width8)
       downloads$height8 <-  as.numeric(input$height8)
+    }
+  )
+  observeEvent(
+    input$adjust10,
+    {
+      downloads$width10 <- as.numeric(input$width10)
+      downloads$height10 <-  as.numeric(input$height10)
     }
   )
   output$downfig1 = downloadHandler(
@@ -1025,6 +1063,21 @@ server <- function(input, output, session){
     content = function(file) {
       pdf(file = file,width = downloads$width8, height = downloads$height8)
       exp.ds$Heatmap
+      dev.off()
+    }
+  )
+  output$downfig10 = downloadHandler(
+    
+    filename = function() {
+      "09.GSvsMM.all.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width8, height = downloads$height8)
+      MMvsGSall(which.trait = exp.ds$st,
+                traitData = exp.ds$phen,nSamples = exp.ds$nSamples,
+                datExpr = exp.ds$table2,
+                moduleColors = exp.ds$moduleColors,
+                geneModuleMembership = exp.ds$MM,MEs = exp.ds$MEs_col)
       dev.off()
     }
   )
