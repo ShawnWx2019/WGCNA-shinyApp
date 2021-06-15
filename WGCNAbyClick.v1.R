@@ -25,10 +25,9 @@ if (!require('ggprism')) install.packages('ggprism');
 if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
-if (!require('ggtree')) BiocManager::install('ggtree',update = FALSE);
 library(devtools)
 if (!require('ShinyWGCNA')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
-if (!require("tidytree")) install_github("YuLab-SMU/tidytree");
+if (!require("ggtree")) install_github("YuLab-SMU/ggtree");
 suppressMessages(library(tidytree))
 suppressMessages(library(ShinyWGCNA))
 suppressMessages(library(ggtree))
