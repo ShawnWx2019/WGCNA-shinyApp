@@ -27,7 +27,9 @@ if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
 if (!require('ggtree')) BiocManager::install('ggtree',update = FALSE);
 library(devtools)
-if (!require('WGCNAshiny')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
+if (!require('ShinyWGCNA')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
+if (!require("tidytree")) install_github("YuLab-SMU/tidytree");
+suppressMessages(library(tidytree))
 suppressMessages(library(ShinyWGCNA))
 suppressMessages(library(ggtree))
 suppressMessages(library(shinyjs))
@@ -634,6 +636,7 @@ server <- function(input, output, session){
     {
       exp.ds$table2 = getdatExpr2(datExpr = exp.ds$table,GeneNumCut = 1-GNC()/nrow(exp.ds$table),cutmethod = cutmethod())
       exp.ds$layout = as.character(input$treelayout)
+      exp.ds$param = getsampleTree(exp.ds$table2,layout = exp.ds$layout)
     }  
   )
   output$filter2 = renderUI({
@@ -708,10 +711,10 @@ server <- function(input, output, session){
     {
       if(PowerTorF() == "Recommended"){
         exp.ds$power = exp.ds$sft$power
-        exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = ncol(exp.ds$table2))
+        exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
       } else if (PowerTorF() == "Customized"){
         exp.ds$power = pcus()
-        exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = ncol(exp.ds$table2))
+        exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
       }
       
     }  
@@ -732,7 +735,7 @@ server <- function(input, output, session){
     input$Startnet,
     {
       exp.ds$netout = getnetwork(datExpr = exp.ds$table2,power = exp.ds$power,
-                                 minModuleSize = mms(),mergeCutHeight = mch())
+                                 minModuleSize = mms(),mergeCutHeight = mch(),nGenes = exp.ds$param$nGenes)
       exp.ds$nSamples = nrow(exp.ds$table2)
       exp.ds$net = exp.ds$netout$net
       exp.ds$moduleLabels = exp.ds$netout$moduleLabels
