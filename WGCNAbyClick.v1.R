@@ -1,0 +1,1172 @@
+###############################
+#	prj: shiny app
+#	Assignment: WGCNA by click shiny app
+#	Author: Shawn Wang
+#	Date: Jan 12, 2021
+###############################
+options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
+if (!require('devtools')) install.packages('devtools');
+if (!require('shinyjs')) install.packages('shinyjs');
+if (!require('dashboardthemes')) install.packages('dashboardthemes');
+if (!require('shinydashboard')) install.packages('shinydashboard');
+if (!require("DT")) install.packages('DT');
+if (!require('shiny')) install.packages('shiny');
+if (!require('ggpmisc')) install.packages('ggpmisc');
+if (!require('dplyr')) install.packages('dplyr');
+if (!require('WGCNA')) BiocManager::install('GO.db',update = FALSE);
+if (!require('WGCNA')) BiocManager::install('WGCNA',update = FALSE);
+if (!require('stringr')) install.packages('stringr');
+if (!require('ape')) install.packages('ape');
+if (!require('reshape2')) install.packages('reshape2');
+if (!require('edgeR')) BiocManager::install('edgeR',update = FALSE);
+if (!require('shinythemes')) install.packages('shinythemes');
+if (!require('ggplotify')) install.packages('ggplotify');
+if (!require('ggprism')) install.packages('ggprism');
+if (!require('patchwork')) install.packages('patchwork');
+if (!require('tidyverse')) install.packages('tidyverse');
+if (!require('shinyjqui')) install.packages('shinyjqui');
+if (!require('ggtree')) BiocManager::install('ggtree',update = FALSE);
+library(devtools)
+if (!require('WGCNAshiny')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
+suppressMessages(library(ShinyWGCNA))
+suppressMessages(library(ggtree))
+suppressMessages(library(shinyjs))
+suppressMessages(library(dashboardthemes))
+suppressMessages(library(shinydashboard))
+suppressMessages(library(DT))
+suppressMessages(library(shiny))
+suppressMessages(library(DESeq2))
+suppressMessages(library(ggplot2))
+suppressMessages(library(dplyr))
+suppressMessages(library(WGCNA))
+suppressMessages(library(stringr))
+suppressMessages(library(ape))
+suppressMessages(library(reshape2))
+suppressMessages(library(edgeR))
+suppressMessages(library(shinythemes))
+suppressMessages(library(ggplotify))
+suppressMessages(library(ggprism))
+suppressMessages(library(patchwork))
+suppressMessages(library(tidyverse))
+suppressMessages(library(shinyjqui))
+
+options(shiny.maxRequestSize = 300*1024^2)
+options(scipen = 6)
+# type = "unsigned"
+# corType = "pearson"
+# maxPOutliers = ifelse(corType=="pearson",1,0.05)
+# robustY = ifelse(corType=="pearson",T,F)
+allowWGCNAThreads()
+# functions =========================
+
+# 01. UI =========================
+## logo
+customLogo <- shinyDashboardLogoDIY(
+  
+  boldText = "ShawnLearnBioinfo"
+  ,mainText = "WGCNA by click mouse"
+  ,textSize = 14
+  ,badgeText = "v1.0"
+  ,badgeTextColor = "white"
+  ,badgeTextSize = 2
+  ,badgeBackColor = "#40E0D0"
+  ,badgeBorderRadius = 3
+  
+)
+
+ui <- shinyUI(
+  navbarPage(theme = shinytheme("spacelab"),
+             customLogo,
+             tabPanel(
+               useShinyjs(),
+               title = "Data import and cleaning",
+               icon = icon("file-upload"),
+               sidebarLayout(
+                 div(id = "Sidebar",
+                     sidebarPanel(
+                       width = 2,
+                       fileInput(
+                         inputId = "ExpMat",
+                         label = "Upload expression matrix",
+                         accept = c(".txt",".csv",".xls")
+                       ),
+                       p("only accecpt Tab-delimited .txt, .csv and .xls file",
+                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
+                       radioButtons(
+                         inputId = "format",
+                         label = "Format",
+                         choices = c("count","FPKM"),
+                         selected = "count"
+                       ),
+                       p("Normalized included: FPKM, RPKM, CPM and other method",
+                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
+                       selectInput(
+                         inputId = "method1",
+                         label = "Normalized method",
+                         choices = c(VST = "varianceStabilizingTransformation",
+                                     lgCPM = "lgcpm",
+                                     FPKM = "rawFPKM",
+                                     lgFPKM = "lgFPKM"),
+                         selected = "varianceStabilizingTransformation"
+                       ),
+                       HTML('<font color = #FF6347  size = 3.2><b>First Time filter</b></font>'),
+                       textInput(
+                         inputId = "SamPer",
+                         label = "Sample percentage",
+                         value = "0.9"
+                       ),
+                       textInput(
+                         inputId = "RCcut",
+                         label = "Expression Cutoff",
+                         value = "10"
+                       ),
+                       p("Noise removal, for example, removing all features that have a count of less than say 10 in more than 90% of the samples",
+                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
+                       br(),
+                       HTML('<font color = #FF6347 size = 3.2><b>Second Time filter</b></font>'),
+                       radioButtons(
+                         inputId = "CutMethod",
+                         label = "Filter Method",
+                         choices = c("MAD","Var"),
+                         selected = "MAD"
+                       ),
+                       textInput(
+                         inputId = "remain",
+                         label = "Reserved genes Num.",
+                         value = "8000"
+                       ),
+                       p("Probesets or genes may be filtered by mean expression or variance (or their robust analogs such as median and median absolute deviation, MAD) since low-expressed or non-varying genes usually represent noise. Whether it is better to filter by mean expression or variance is a matter of debate; both have advantages and disadvantages, but more importantly, they tend to filter out similar sets of genes since mean and variance are usually related.",
+                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
+                     )# sidebarPanel
+                 ),# div
+                 mainPanel(
+                   fluidPage(
+                     actionButton("toggleSidebar", 
+                                  "Toggle sidebar"),
+                     actionButton("action1", "Update information!"),
+                     tabsetPanel(
+                       tabPanel(title = "Input file check",height = "500px",width = "100%",
+                                icon = icon("check-circle"),
+                                htmlOutput("Inputcheck"),
+                                htmlOutput("filter1"),
+                                htmlOutput("filter2"),
+                       ),
+                       tabPanel(title = "Preview of Input",height = "500px",width = "100%",
+                                icon = icon("table"),
+                                DT::dataTableOutput("Inputbl"),
+                       ),
+                       tabPanel(title = "SampleCluster",height = "500px",width = "100%",
+                                icon = icon("tree"),
+                                selectInput(inputId = "treelayout",
+                                            label = "Layout",
+                                            choices = c("rectangular", "slanted", "fan", 
+                                                        "circular", "radial", "unrooted", "equal_angle", "daylight"),
+                                            selected = "rectangular"
+                                            ),
+                                jqui_resizable(
+                                  plotOutput("clustPlot")
+                                ),
+                                textInput(inputId = "width1",
+                                          label = "width"),
+                                textInput(inputId = "height1",
+                                          label = "height"),
+                                actionButton("adjust1","Set fig size"),
+                                downloadButton("downfig1","Download")
+
+                                
+                       )# tabPanel
+                     )
+                     
+                   )# fluidPage
+                 )#mainPanel
+               ) # sidebarLayout
+             ),##tabPanel
+             tabPanel(
+               useShinyjs(),
+               title = "SFT and Power Select",
+               icon = icon("play-circle"),
+               sidebarLayout(
+                 div(id = "Sidebar2",
+                     sidebarPanel(
+                       width = 2,
+                       sliderInput(
+                         inputId = "CutoffR",
+                         label = HTML('R<sup>2</sup> cutoff'),
+                         min = 0,
+                         max = 1,
+                         value = 0.8 
+                       ),
+                       br(),
+                       HTML('<font size = 2.5 color = #7a8788><i>WGCNA will generate a recommended power value. If it does not match, a power will be given according to the experience list in the WGCNA FAQ. I don’t like this experience power very much. <font color = blue>If you find that the R <sup>2</sup> value corresponding to experience power given by the software lower than your setting Threshold </font>,<font color = purple><b> please select a customized power based on the SFT plot.</b></i></font></font>'),
+                       radioButtons(
+                         inputId = "PowerTorF",
+                         label = "Power type",
+                         choices = c("Recommended","Customized"),
+                         selected = "Recommended"
+                       ),
+                       
+                       sliderInput(
+                         inputId = "PowerSelect",
+                         label = "Final Power Selection",
+                         min = 1,
+                         max = 33,
+                         value = 6
+                       )
+                     )
+                 ),
+                 mainPanel(
+                   fluidPage(
+                     #### output field
+                     actionButton("toggleSidebar2", 
+                                  "Toggle sidebar"),
+                     tabsetPanel(
+                       tabPanel(title = "Select Power",height = "500px",width = "100%",
+                                icon = icon("th"),
+                                actionButton("Startsft","Start analysis"),
+                                htmlOutput("powerout"),
+                                jqui_resizable(
+                                  plotOutput("sftplot")
+                                ),
+                                textInput(inputId = "width2",
+                                          label = "width",
+                                          value = 10),
+                                textInput(inputId = "height2",
+                                          label = "height",
+                                          value = 10),
+                                actionButton("adjust2","Set fig size"),
+                                downloadButton("downfig2","Download")
+                                
+                                
+                       ),
+                       tabPanel(title = "Information of sft table",height = "500px",width = "100%",
+                                icon = icon("table"),
+                                DT::dataTableOutput("sfttbl")
+                       ),
+                       tabPanel(title = "scale free estimate",height = "500px",width = "100%",
+                                icon = icon("chart-bar"),
+                                actionButton("Startcheck","Check Scale-free"),
+                                jqui_resizable(
+                                  plotOutput("sfttest")
+                                ),
+                                textInput(inputId = "width3",
+                                          label = "width",
+                                          value = 10),
+                                textInput(inputId = "height3",
+                                          label = "height",
+                                          value = 10),
+                                actionButton("adjust3","Set fig size"),
+                                downloadButton("downfig3","Download")
+                                
+                       )## tabPanel
+                     )## tabsetPanel
+                   )## fluidPage
+                 )
+               )
+             ),##tabPanel
+             tabPanel(
+               useShinyjs(),
+               title = "Module-net",
+               icon = icon("play-circle"),
+               sidebarLayout(
+                 div(id = "Sidebar3",
+                   sidebarPanel(
+                     width = 2,
+                     sliderInput(
+                       inputId = "minMsize",
+                       label = "min Module Size",min = 20,max = 200,value = 30
+                     ),
+                     sliderInput(
+                       inputId = "mch",
+                       label = "module cuttree height",
+                       min = 0, max = 1, value = 0.25
+                     ),
+                   )
+                 ),
+                 mainPanel(
+                   fluidPage(
+                     actionButton("toggleSidebar3", 
+                                  "Toggle sidebar"),
+                     tabsetPanel(
+                       tabPanel(
+                         title = "Cluster",height = "500px",width = "100%",
+                         icon = icon("table"),
+                         actionButton("Startnet","Start"),
+                         jqui_resizable(
+                           plotOutput("cluster")
+                         ),
+                         textInput(inputId = "width4",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height4",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust4","Set fig size"),
+                         downloadButton("downfig4","Download"),
+                         
+                         br(),
+                         br(),
+                         tableOutput("m2num")
+                       ),
+                       tabPanel(
+                         title = "Eigengene adjacency heatmap",height = "500px",width = "100%",
+                         icon = icon("th"),
+                         jqui_resizable(
+                           plotOutput("eah")
+                         ),
+                         textInput(inputId = "width5",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height5",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust5","Set fig size"),
+                         downloadButton("downfig5","Download")
+                       ),
+                       tabPanel(
+                         title = "Gene to module",height = "500px",width = "100%",
+                         icon = icon("table"),
+                         DT::dataTableOutput("g2m"),
+                         downloadButton("downtbl2","download")
+                       )
+                     )
+
+                   )
+                 )
+               )
+             ),##tabPanel
+             tabPanel(
+               useShinyjs(),
+               title = "Module-trait",
+               icon = icon("star-of-david"),
+               sidebarLayout(
+                 div(id = "Sidebar4",
+                   sidebarPanel(
+                     width = 2,
+                     fileInput(
+                       inputId = "traitData",
+                       label = "Upload expression matrix",
+                       accept = c(".txt",".csv",".xls")
+                     ),
+                     textInput(
+                       inputId = "xangle",
+                       label = "x axis label angle",
+                       value = 0
+                     ),
+                     actionButton("starttrait","Start analysis")
+                   )
+                 ),
+                 mainPanel(
+                   actionButton("toggleSidebar4", 
+                                "Toggle sidebar"),
+                   fluidPage(
+                     tabsetPanel(
+                       tabPanel(
+                         title = "Module to trait",height = "500px",width = "100%",
+                         icon = icon("ht"),
+                         jqui_resizable(
+                           plotOutput("mtplot")
+                         ),
+                         textInput(inputId = "width6",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height6",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust6","Set fig size"),
+                         downloadButton("downfig6","Download")
+                       ),
+                       tabPanel(
+                         title = "Module-trait matrix",height = "500px",width = "100%",
+                         icon = icon("table"),
+                         DT::dataTableOutput("traitmat"),
+                         DT::dataTableOutput("traitp")
+                       ),
+                       tabPanel(
+                         title = "eigengene-based connectivities,KME",height = "500px",width = "100%",
+                         icon = icon("table"),
+                         DT::dataTableOutput("KME"),
+                         downloadButton("downtbl3","download")
+                       )
+                     )
+                   )
+                 )
+               )
+             ),##tabPanel
+             tabPanel(
+               useShinyjs(),
+               title = "Interested module",
+               icon = icon("broom"),
+               sidebarLayout(
+                 div(id = "sidebar5",
+                   sidebarPanel(
+                     width = 2,
+                     textInput(
+                       inputId = "strait",
+                       label = "Select traits"
+                     ),
+                     textInput(
+                       inputId = "smodule",
+                       label = "Select module"
+                     ),
+                     actionButton("InterMode","Start Analysis")
+                   )
+                 ),
+                 mainPanel(
+                   actionButton("toggleSidebar5", 
+                                "Toggle sidebar"),
+                   fluidPage(
+                     tabsetPanel(
+                       tabPanel(
+                         title = "GS-Connectivity",height = "500px",width = "100%",
+                         icon = icon("chart-line"),
+                         jqui_resizable(
+                           plotOutput("GSCon")
+                           ),
+                         textInput(inputId = "width7",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height7",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust7","Set fig size"),
+                         downloadButton("downfig7","Download")
+                         ),
+                       tabPanel(
+                         title = "Heatmap",height = "500px",width = "100%",
+                         icon = icon("buromobelexperte"),
+                         jqui_resizable(
+                           plotOutput("heatmap")
+                           ),
+                         textInput(inputId = "width8",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height8",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust8","Set fig size"),
+                         downloadButton("downfig8","Download")
+                       ),
+                       tabPanel(
+                         title = "MM vs GS all",height = "500px",width = "100%",
+                         icon = icon("chart-line"),
+                         jqui_resizable(
+                           plotOutput("GSMM.all")
+                         ),
+                         textInput(inputId = "width10",
+                                   label = "width",
+                                   value = 10),
+                         textInput(inputId = "height10",
+                                   label = "height",
+                                   value = 10),
+                         actionButton("adjust10","Set fig size"),
+                         downloadButton("downfig10","Download")
+                       )
+                     )
+                   )
+                 )
+               ),
+             ),##tabPanel
+             tabPanel(
+               useShinyjs(),
+               title = "hub gene",
+               icon = icon("star"),
+               sidebarLayout(
+                 div(id = "sidebar6",
+                     sidebarPanel(
+                       width = 2,
+                       textInput(
+                         inputId = "hubtrait",
+                         label = "Select trait"
+                       ),
+                       textInput(
+                         inputId = "hubmodule",
+                         label = "Select module"
+                       ),
+                       actionButton("starthub","Start Analysis")
+                     )
+                 ),
+                 mainPanel(
+                   actionButton("toggleSidebar6",
+                                "Toggle sidebar"),
+                   fluidPage(
+                     tabsetPanel(
+                       tabPanel(
+                         title = " choose Top Hub In Each Module (Not recommended)",
+                         icon = icon("sad-cry"),
+                         DT::dataTableOutput("cthub")
+                       ),
+                       tabPanel(
+                         title = "By kME and GS (Yes!)",
+                         icon = icon("smile"),
+                         sliderInput(
+                           inputId = "kMEcut",
+                           label = "cutoff of  absolute value of kME",
+                           min = 0,max = 1,step = 0.01,
+                           value = 0.5
+                         ),
+                         sliderInput(
+                           inputId = "GScut",
+                           label = "cutoff of  absolute value of GS",
+                           min = 0,max = 1,step = 0.01,
+                           value = 0.5
+                         ),
+                         DT::dataTableOutput("kMEhub"),
+                         downloadButton("downtbl4","download")
+                       ),
+                       tabPanel(
+                         title = "Cytoscape output",
+                         icon = icon("dna"),
+                         textInput(
+                           inputId = "threshold",
+                           label = "weight threshold",
+                           value = 0.02
+                         ),
+                         actionButton("threadd","choose the threshold"),
+                         DT::dataTableOutput("edgeFile"),
+                         DT::dataTableOutput("nodeFile"),
+                         downloadButton("downtbl5","download edgefile"),
+                         downloadButton("downtbl6","download nodefile")
+                       )
+                     )
+                   )
+                 )
+               )
+             )##tabPanel
+             
+  )## navbarPage
+)## UI
+
+server <- function(input, output, session){
+  observeEvent(input$toggleSidebar, {
+    shinyjs::toggle(id = "Sidebar")
+  })
+  observeEvent(input$toggleSidebar2, {
+    shinyjs::toggle(id = "Sidebar2")
+  })
+  observeEvent(input$toggleSidebar3, {
+    shinyjs::toggle(id = "Sidebar3")
+  })
+  observeEvent(input$toggleSidebar4, {
+    shinyjs::toggle(id = "Sidebar4")
+  })
+  observeEvent(input$toggleSidebar5, {
+    shinyjs::toggle(id = "Sidebar5")
+  })
+  observeEvent(input$toggleSidebar6, {
+    shinyjs::toggle(id = "Sidebar6")
+  })
+  data <- reactive({
+    file1 <- input$ExpMat
+    if(is.null(file1)){return()}
+    read.delim(file = file1$datapath,
+               sep="\t",
+               header = T,
+               stringsAsFactors = F)
+  })
+  
+  output$Inputcheck = renderUI({
+    if(is.null(data())){return()}
+    if(length(which(is.na(data()))) == 0) {
+      HTML('<font color = red><b>
+          Congratulations!,</b></font> There is no problem with your expression matrix format, please proceed to the next step
+          ')
+    } else {
+      HTML(
+        '<font color = blue><b>Sorry!</b></font>
+       Your expression matrix has blank (NA) values or blank (NA) rows,<font color = blue> Please double check and manually remove the blanks or rows and upload file again</font>
+       '
+      )
+    }
+    
+  })
+  ## count number
+  fmt = reactive({
+    input$format
+  })
+  mtd = reactive({
+    input$method1
+  })
+  sampP = reactive({
+    as.numeric(input$SamPer)
+  })
+  rccutoff = reactive({
+    as.numeric(input$RCcut)
+  })
+  GNC = reactive({
+    as.numeric(input$remain)
+  })
+  cutmethod = reactive({
+    input$CutMethod
+  })
+  ## set reactiveValues
+  exp.ds<-reactiveValues(data=NULL)
+  downloads <- reactiveValues(data = NULL)
+  observeEvent(
+    input$action1,
+    {
+      exp.ds$table = getdatExpr(rawdata = data(),
+                                RcCutoff = rccutoff(),samplePerc = sampP(),
+                                datatype = fmt(),method = mtd())
+    }  
+  )
+  num = reactive({
+    if(is.null(datExpr1())){return()}
+    as.numeric(nrow(datExpr1()))
+  })
+  output$filter1 = renderUI({
+    if(is.null(data())){return()}
+    if(length(which(is.na(data()))) != 0) {return()}
+    input$action1
+    withProgress(message = 'Calculation in progress',
+                 detail = 'This may take a while...', value = 0, 
+                 expr = {
+                   for (i in 1:15) {
+                     incProgress(1/15)
+                     Sys.sleep(0.25)
+                   }
+                 })
+    isolate(HTML(paste0('<font color = red> <b>After filtered by conditions:</b> </font>removing all features that have a count of less than say <font color = red><b>',rccutoff(),'</b></font> in more than <font color = red> <b>',100*sampP(),'% </b></font> of the samples','<br/>',
+                        '<font color = red> <b>Remaining Gene Numbers: </b> </font>',nrow(exp.ds$table))))
+  })
+  ## filter step2
+  observeEvent(
+    input$action1,
+    {
+      exp.ds$table2 = getdatExpr2(datExpr = exp.ds$table,GeneNumCut = 1-GNC()/nrow(exp.ds$table),cutmethod = cutmethod())
+      exp.ds$layout = as.character(input$treelayout)
+    }  
+  )
+  output$filter2 = renderUI({
+    if(is.null(data())){return()}
+    if(length(which(is.na(data()))) != 0) {return()}
+    if(is.null(exp.ds$table)){return()}
+    input$action1
+    isolate(HTML(paste0('<font color = red> <b>After filtered by conditions:</b> </font>Genes with <font color = red><b>',cutmethod(),'</b></font> ranked top <font color = red> <b>',GNC(),' </b></font> of all expressed genes','<br/>',
+                        '<font color = red> <b>Remaining Gene Numbers: </b> </font>',ncol(exp.ds$table2))))
+  })
+  ## summary num
+  output$Inputbl = DT::renderDataTable({
+    if(is.null(data())){return()}
+    if(length(which(is.na(data()))) != 0) {return()}
+    as.data.frame(t(exp.ds$table2))
+  })
+  ## sample tree
+  output$clustPlot = renderPlot({
+    if(is.null(data())){return()}
+    if(length(which(is.na(data()))) != 0) {return()}
+    if(is.null(exp.ds$table2)){return()}
+    getsampleTree(exp.ds$table2,layout = exp.ds$layout)$plot
+  })
+  ## download sample tree
+
+  rscut = reactive({
+    as.numeric(input$CutoffR)
+  })
+  
+  observeEvent(
+    input$Startsft,
+    {
+      exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut())
+    }  
+  )
+  output$powerout = renderUI({
+    if(is.null(exp.ds$table2)){return()}
+    input$Startsft
+    withProgress(message = 'Calculation in progress',
+                 detail = 'This may take a while...', value = 0, 
+                 expr = {
+                   for (i in 1:15) {
+                     incProgress(1/15)
+                     Sys.sleep(0.25)
+                   }
+                 })
+    isolate(HTML(paste0('<font color = red> <b>The power recommended by WGCNA is:</b> </font><font color = bule><b>',exp.ds$sft$power,'</b></font> ','<br/>',
+                        '<font color = pink> <i>If all power values lower than the R square threshold which you set, it means that the power value is an empirical value. At this time, you need to infer a power value based on the results on your picture and check whether it can form a scale-free network. </i> </font>')))
+  })
+  
+  ## outsft
+  output$sftplot = renderPlot({
+    if(is.null(exp.ds$table2)){return()}
+    input$Startsft
+    exp.ds$sft$plot
+  })
+  ## outtbl
+  output$sfttbl = DT::renderDataTable({
+    if(is.null(exp.ds$table2)){return()}
+    input$Startsft
+    as.data.frame(exp.ds$sft$sft)
+  })
+  ## test sft
+  pcus = reactive({
+    as.numeric(input$PowerSelect)
+  })
+  PowerTorF = reactive({
+    input$PowerTorF
+  })
+  observeEvent(
+    input$Startcheck,
+    {
+      if(PowerTorF() == "Recommended"){
+        exp.ds$power = exp.ds$sft$power
+        exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = ncol(exp.ds$table2))
+      } else if (PowerTorF() == "Customized"){
+        exp.ds$power = pcus()
+        exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = ncol(exp.ds$table2))
+      }
+      
+    }  
+  )
+  
+  output$sfttest = renderPlot({
+    if(is.null(exp.ds$sft)){return()}
+    input$Startcheck
+    exp.ds$cksft
+  })
+  mms = reactive({
+    as.numeric(input$minMsize)
+  })
+  mch = reactive({
+    as.numeric(input$mch)
+  })
+  observeEvent(
+    input$Startnet,
+    {
+      exp.ds$netout = getnetwork(datExpr = exp.ds$table2,power = exp.ds$power,
+                                 minModuleSize = mms(),mergeCutHeight = mch())
+      exp.ds$nSamples = nrow(exp.ds$table2)
+      exp.ds$net = exp.ds$netout$net
+      exp.ds$moduleLabels = exp.ds$netout$moduleLabels
+      exp.ds$moduleColors = exp.ds$netout$moduleColors
+      exp.ds$MEs_col = exp.ds$netout$MEs_col
+      exp.ds$MEs = exp.ds$netout$MEs
+      exp.ds$Gene2module = exp.ds$netout$Gene2module
+    }
+  )
+  output$cluster = renderPlot({
+    input$Startnet
+    if(is.null(exp.ds$net)){return()}
+    plotDendroAndColors(exp.ds$net$dendrograms[[1]], exp.ds$moduleColors[exp.ds$net$blockGenes[[1]]],
+                        "Module colors",
+                        dendroLabels = FALSE, hang = 0.03,
+                        addGuide = TRUE, guideHang = 0.05)
+  })
+  output$m2num = renderTable({
+    input$Startnet
+    if(is.null(exp.ds$net)){return()}
+    table(exp.ds$moduleColors)
+  })
+  
+
+    output$eah = renderPlot({
+      input$Startnet
+      if(is.null(exp.ds$net)){return()}
+      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap", 
+                            marDendro = c(3,3,2,4),
+                            marHeatmap = c(3,4,2,2), plotDendrograms = T, 
+                            xLabelsAngle = 90)
+    })
+
+
+  
+  output$g2m = DT::renderDataTable({
+    input$Startnet
+    if(is.null(exp.ds$net)){return()}
+    exp.ds$Gene2module
+  })
+  
+  phen <- reactive({
+    file2 <- input$traitData
+    if(is.null(file2)){return()}
+    read.delim(file = file2$datapath,
+               sep="\t",
+               header = T,
+               stringsAsFactors = F)
+  })
+  
+  
+  observeEvent(
+    input$starttrait,
+    {
+      if (ncol(phen()) == 2) {
+        x <- phen()
+        Tcol = as.character(unique(x[,2]))
+        b <- list()
+        for (i in 1:length(Tcol)) {
+          b[[i]] = data.frame(row.names = x[,1],
+                              levels = ifelse(x[,2] == Tcol[i],1,0))
+        }
+        c <- bind_cols(b)
+        c <- data.frame(row.names = x$name,
+                        c)
+        colnames(c) = Tcol
+        rownames(c) = phen()[,1]
+        exp.ds$phen<- c
+      } else {
+        exp.ds$phen = data.frame(row.names = phen()[,1],
+                            phen()[,-1])
+      }
+      exp.ds$phen =  exp.ds$phen[match(rownames(exp.ds$table2),rownames(exp.ds$phen)),]
+      exp.ds$traitout = getMt(phenotype = exp.ds$phen,MEs_col = exp.ds$MEs_col,
+                              nSamples = exp.ds$nSamples,moduleColors = exp.ds$moduleColors,datExpr = exp.ds$table2)
+      exp.ds$xangle = as.numeric(input$xangle)
+      exp.ds$modTraitCor = exp.ds$traitout$modTraitCor
+      exp.ds$modTraitP = exp.ds$traitout$modTraitP
+      exp.ds$textMatrix = exp.ds$traitout$textMatrix
+      exp.ds$KME = getKME(datExpr = exp.ds$table2,moduleColors = exp.ds$moduleColors,MEs_col = exp.ds$MEs_col)
+    }
+  )
+
+    output$mtplot = renderPlot({
+      input$starttrait
+      if(is.null(phen())){return()}
+      if(is.null(exp.ds$phen)){return()}
+      
+      labeledHeatmap(Matrix = exp.ds$modTraitCor, xLabels = colnames(exp.ds$phen), 
+                     yLabels = colnames(exp.ds$MEs_col), 
+                     cex.lab = 0.7, xLabelsAngle = exp.ds$xangle, xLabelsAdj = 1,
+                     ySymbols = substr(colnames(exp.ds$MEs_col),3,1000), colorLabels = FALSE, 
+                     colors = colorRampPalette(c("orange","white","purple"))(100), 
+                     textMatrix = exp.ds$textMatrix, setStdMargins = FALSE, 
+                     cex.text = 0.6, zlim = c(-1,1),
+                     main = paste("Module-trait relationships"))
+      
+    })
+  
+  
+  
+  output$traitmat = DT::renderDataTable({
+    input$starttrait
+    if(is.null(phen())){return()}
+    if(is.null(exp.ds$phen)){return()}
+    as.data.frame(exp.ds$modTraitCor)
+  })
+  
+  output$traitp = DT::renderDataTable({
+    input$starttrait
+    if(is.null(phen())){return()}
+    if(is.null(exp.ds$phen)){return()}
+    as.data.frame(exp.ds$modTraitP)
+  })
+  
+  output$KME = DT::renderDataTable({
+    input$starttrait
+    if(is.null(phen())){return()}
+    if(is.null(exp.ds$phen)){return()}
+    as.data.frame(exp.ds$KME)
+  })
+  
+  observeEvent(
+    input$InterMode,
+    {
+      exp.ds$GSout = getMM(datExpr = exp.ds$table2,MEs_col = exp.ds$MEs_col,nSamples = exp.ds$nSamples,corType = "pearson")
+      exp.ds$MM = exp.ds$GSout$MM
+      exp.ds$MMP = exp.ds$GSout$MMP
+      exp.ds$sml = as.character(input$smodule)
+      exp.ds$st = as.character(input$strait)
+      exp.ds$Heatmap = moduleheatmap(datExpr = exp.ds$table2,MEs = exp.ds$MEs_col,which.module = exp.ds$sml,
+                                     moduleColors = exp.ds$moduleColors)
+      
+    }
+  )
+  
+  output$GSCon = renderPlot({
+    input$InterMode
+    if(is.null(exp.ds$st)){return()}
+    if(is.null(exp.ds$sml)){return()}
+    getverboseplot(datExpr = exp.ds$table2,module = exp.ds$sml,pheno = exp.ds$st,MEs = exp.ds$MEs_col,
+                   traitData = exp.ds$phen,moduleColors = exp.ds$moduleColors,
+                   geneModuleMembership = exp.ds$MM,nSamples = exp.ds$nSamples)
+  })
+  
+  output$heatmap = renderPlot({
+    input$InterMode
+    if(is.null(exp.ds$st)){return()}
+    if(is.null(exp.ds$sml)){return()}
+    exp.ds$Heatmap
+  })
+  
+  output$GSMM.all = renderPlot({
+    input$InterMode
+    if(is.null(exp.ds$st)){return()}
+    if(is.null(exp.ds$sml)){return()}
+    MMvsGSall(which.trait = exp.ds$st,
+              traitData = exp.ds$phen,
+              datExpr = exp.ds$table2,
+              moduleColors = exp.ds$moduleColors,
+              geneModuleMembership = exp.ds$MM, 
+              MEs = exp.ds$MEs_col,
+              nSamples = exp.ds$nSamples)
+  })
+  
+  observeEvent(
+    input$starthub,
+    {
+      exp.ds$hubml = as.character(input$hubmodule)
+      exp.ds$hubt = as.character(input$hubtrait)
+      exp.ds$kMEcut = as.numeric(input$kMEcut)
+      exp.ds$GScut = as.numeric(input$GScut)
+      exp.ds$hub.all = hubgenes(datExpr = exp.ds$table2,mdl = exp.ds$hubml,power = exp.ds$power,trt = exp.ds$hubt,
+                                KME = exp.ds$KME,GS.cut = exp.ds$GScut,kME.cut =exp.ds$kMEcut,datTrait = exp.ds$phen )
+    }
+  )
+  
+  observeEvent(
+    input$threadd,
+    {
+      exp.ds$threshold = as.numeric(input$threshold)
+      exp.ds$cyt = cytoscapeout(datExpr = exp.ds$table2,
+                                power = exp.ds$power,module = exp.ds$hubml,
+                                moduleColors = exp.ds$moduleColors,
+                                threshold = exp.ds$threshold)
+    }
+  )
+  checkAdjMat
+  output$cthub = DT::renderDataTable({
+    input$starthub
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$hubt)){return()}
+    exp.ds$hub.all$hub1
+  })
+  
+  output$kMEhub = DT::renderDataTable({
+    input$starthub
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$hubt)){return()}
+    if(is.null(exp.ds$kMEcut)){return()}
+    if(is.null(exp.ds$GScut)){return()}
+    exp.ds$hub.all$hub3
+  })
+  
+  output$edgeFile = DT::renderDataTable({
+    input$threadd
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$threshold)){return()}
+    exp.ds$cyt[[1]]
+  })
+  
+  output$nodeFile = DT::renderDataTable({
+    input$threadd
+    if(is.null(exp.ds$hubml)){return()}
+    if(is.null(exp.ds$threshold)){return()}
+    exp.ds$cyt[[2]]
+  })
+
+# download ----------------------------------------------------------------
+
+  
+  observeEvent(
+    input$adjust1,
+    {
+      downloads$width1 <- as.numeric(input$width1)
+      downloads$height1 <-  as.numeric(input$height1)
+    }
+  )
+  observeEvent(
+    input$adjust2,
+    {
+      downloads$width2 <- as.numeric(input$width2)
+      downloads$height2 <-  as.numeric(input$height2)
+    }
+  )
+  observeEvent(
+    input$adjust3,
+    {
+      downloads$width3 <- as.numeric(input$width3)
+      downloads$height3 <-  as.numeric(input$height3)
+    }
+  )
+  observeEvent(
+    input$adjust4,
+    {
+      downloads$width4 <- as.numeric(input$width4)
+      downloads$height4 <- as.numeric(input$height4) 
+    }
+  )
+  observeEvent(
+    input$adjust5,
+    {
+      downloads$width5 <- as.numeric(input$width5)
+      downloads$height5 <-  as.numeric(input$height5)
+    }
+  )
+  observeEvent(
+    input$adjust6,
+    {
+      downloads$width6 <- as.numeric(input$width6)
+      downloads$height6 <-  as.numeric(input$height6)
+    }
+  )
+  observeEvent(
+    input$adjust7,
+    {
+      downloads$width7 <- as.numeric(input$width7)
+      downloads$height7 <-  as.numeric(input$height7)
+    }
+  )
+  observeEvent(
+    input$adjust8,
+    {
+      downloads$width8 <- as.numeric(input$width8)
+      downloads$height8 <-  as.numeric(input$height8)
+    }
+  )
+  observeEvent(
+    input$adjust10,
+    {
+      downloads$width10 <- as.numeric(input$width10)
+      downloads$height10 <-  as.numeric(input$height10)
+    }
+  )
+  output$downfig1 = downloadHandler(
+    filename = function() {
+      "01.SampleCluster.pdf"
+    },
+    content = function(file) {
+      fig1 = getsampleTree(exp.ds$table2,layout = exp.ds$layout)$plot
+      ggsave(plot = fig1,filename = file,width = downloads$width1,height = downloads$height1)
+    }
+  )
+  output$downfig2 = downloadHandler(
+    filename = function() {
+      "02.SftResult.pdf"
+    },
+    content = function(file) {
+      ggsave(plot = exp.ds$sft$plot,filename = file,width = downloads$width2,height = downloads$height2)
+    }
+  )
+  output$downfig3 = downloadHandler(
+    filename = function() {
+      "03.CheckSft.pdf"
+    },
+    content = function(file) {
+      ggsave(plot = exp.ds$cksft,filename = file,width = downloads$width3,height = downloads$height3)
+    }
+  )
+  output$downfig4 = downloadHandler(
+    filename = function() {
+      "04.ClusterDendrogram.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width4, height = downloads$height4 )
+      plotDendroAndColors(exp.ds$net$dendrograms[[1]], exp.ds$moduleColors[exp.ds$net$blockGenes[[1]]],
+                          "Module colors",
+                          dendroLabels = FALSE, hang = 0.03,
+                          addGuide = TRUE, guideHang = 0.05)
+      dev.off()
+    }
+  )
+  output$downfig5 = downloadHandler(
+    filename = function() {
+      "05.EigengeneadJacencyHeatmap.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width5, height = downloads$height5)
+      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap", 
+                            marDendro = c(3,3,2,4),
+                            marHeatmap = c(3,4,2,2), plotDendrograms = T, 
+                            xLabelsAngle = 90)
+      dev.off()
+    }
+  )
+  output$downfig6 = downloadHandler(
+    filename = function() {
+      "06.Module2Trait.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width6, height = downloads$height6)
+      labeledHeatmap(Matrix = exp.ds$modTraitCor, xLabels = colnames(exp.ds$phen), 
+                     yLabels = colnames(exp.ds$MEs_col), 
+                     cex.lab = 0.7, xLabelsAngle = exp.ds$xangle, xLabelsAdj = 1,
+                     ySymbols = substr(colnames(exp.ds$MEs_col),3,1000), colorLabels = FALSE, 
+                     colors = colorRampPalette(c("orange","white","purple"))(100), 
+                     textMatrix = exp.ds$textMatrix, setStdMargins = FALSE, 
+                     cex.text = 0.6, zlim = c(-1,1),
+                     main = paste("Module-trait relationships"))
+      dev.off()
+    }
+  )
+  output$downfig7 = downloadHandler(
+    filename = function() {
+      "07.GS-Connectivity.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width7, height = downloads$height7)
+      getverboseplot(datExpr = exp.ds$table2,module = exp.ds$sml,pheno = exp.ds$st,MEs = exp.ds$MEs_col,
+                     traitData = exp.ds$phen,moduleColors = exp.ds$moduleColors,
+                     geneModuleMembership = exp.ds$MM,nSamples = exp.ds$nSamples)
+      dev.off()
+    }
+  )
+  output$downfig8 = downloadHandler(
+    
+    filename = function() {
+      "08.MEandGeneHeatmap.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width8, height = downloads$height8)
+      exp.ds$Heatmap
+      dev.off()
+    }
+  )
+  output$downfig10 = downloadHandler(
+    
+    filename = function() {
+      "09.GSvsMM.all.pdf"
+    },
+    content = function(file) {
+      pdf(file = file,width = downloads$width8, height = downloads$height8)
+      MMvsGSall(which.trait = exp.ds$st,
+                traitData = exp.ds$phen,nSamples = exp.ds$nSamples,
+                datExpr = exp.ds$table2,
+                moduleColors = exp.ds$moduleColors,
+                geneModuleMembership = exp.ds$MM,MEs = exp.ds$MEs_col)
+      dev.off()
+    }
+  )
+  output$downtbl2 = downloadHandler(
+    
+    filename = function() {
+      if(is.null(exp.ds$net)){return()}
+      "01.Gene2Module.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$Gene2module,file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl3 = downloadHandler(
+    filename = function() {
+      "02.KMEofAllGenes.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl4 = downloadHandler(
+    filename = function() {
+      "03.HubbykMEandGS.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$hub.all$hub3,file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl5 = downloadHandler(
+    filename = function() {
+      "04.cyt.edge.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$cyt[[1]],file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl6 = downloadHandler(
+    filename = function() {
+      "04.cyt.node.xls"
+    },
+    content = function(file) {
+      write.table(x = exp.ds$cyt[[2]],file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+
+}
+
+
+shinyApp(ui,server)
