@@ -27,10 +27,7 @@ if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
 library(devtools)
 if (!require('ShinyWGCNA')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
-if (!require("ggtree")) install_github("YuLab-SMU/ggtree");
-suppressMessages(library(tidytree))
 suppressMessages(library(ShinyWGCNA))
-suppressMessages(library(ggtree))
 suppressMessages(library(shinyjs))
 suppressMessages(library(dashboardthemes))
 suppressMessages(library(shinydashboard))
@@ -158,23 +155,10 @@ ui <- shinyUI(
                        ),
                        tabPanel(title = "SampleCluster",height = "500px",width = "100%",
                                 icon = icon("tree"),
-                                selectInput(inputId = "treelayout",
-                                            label = "Layout",
-                                            choices = c("rectangular", "slanted", "fan", 
-                                                        "circular", "radial", "unrooted", "equal_angle", "daylight"),
-                                            selected = "rectangular"
-                                            ),
                                 jqui_resizable(
                                   plotOutput("clustPlot")
                                 ),
-                                textInput(inputId = "width1",
-                                          label = "width"),
-                                textInput(inputId = "height1",
-                                          label = "height"),
-                                actionButton("adjust1","Set fig size"),
-                                downloadButton("downfig1","Download")
-
-                                
+                                downloadButton("downfig1","Download")        
                        )# tabPanel
                      )
                      
@@ -657,7 +641,7 @@ server <- function(input, output, session){
     if(is.null(data())){return()}
     if(length(which(is.na(data()))) != 0) {return()}
     if(is.null(exp.ds$table2)){return()}
-    getsampleTree(exp.ds$table2,layout = exp.ds$layout)$plot
+    plot(exp.ds$param$sampleTree,main = "Sample clustering to detect outlier", sub = "", xlab = "")
   })
   ## download sample tree
 
@@ -1021,11 +1005,10 @@ server <- function(input, output, session){
   )
   output$downfig1 = downloadHandler(
     filename = function() {
-      "01.SampleCluster.pdf"
+      "01.SampleCluster.nwk"
     },
     content = function(file) {
-      fig1 = getsampleTree(exp.ds$table2,layout = exp.ds$layout)$plot
-      ggsave(plot = fig1,filename = file,width = downloads$width1,height = downloads$height1)
+      write.tree(exp.ds$param$tree,file = "01.SampleCluster.nwk")
     }
   )
   output$downfig2 = downloadHandler(
