@@ -5,7 +5,10 @@
 #	Date: Jan 12, 2021
 ###############################
 options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
 if (!require('devtools')) install.packages('devtools');
+if (!require('DESeq2')) BiocManager::install('DESeq2',update = FALSE);
 if (!require('shinyjs')) install.packages('shinyjs');
 if (!require('dashboardthemes')) install.packages('dashboardthemes');
 if (!require('shinydashboard')) install.packages('shinydashboard');
@@ -22,6 +25,7 @@ if (!require('edgeR')) BiocManager::install('edgeR',update = FALSE);
 if (!require('shinythemes')) install.packages('shinythemes');
 if (!require('ggplotify')) install.packages('ggplotify');
 if (!require('ggprism')) install.packages('ggprism');
+if (!require('ggpubr')) install.packages('ggpubr');
 if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
@@ -47,7 +51,7 @@ suppressMessages(library(ggprism))
 suppressMessages(library(patchwork))
 suppressMessages(library(tidyverse))
 suppressMessages(library(shinyjqui))
-
+suppressMessages(library(ggpubr))
 options(shiny.maxRequestSize = 300*1024^2)
 options(scipen = 6)
 # type = "unsigned"
