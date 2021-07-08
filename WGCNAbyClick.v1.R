@@ -333,7 +333,7 @@ ui <- shinyUI(
                      width = 2,
                      fileInput(
                        inputId = "traitData",
-                       label = "Upload expression matrix",
+                       label = "Upload trait data",
                        accept = c(".txt",".csv",".xls")
                      ),
                      textInput(
@@ -1127,7 +1127,7 @@ server <- function(input, output, session){
       "02.KMEofAllGenes.xls"
     },
     content = function(file) {
-      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = F,quote = F)
+      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = T,quote = F)
     }
   )
   output$downtbl4 = downloadHandler(
