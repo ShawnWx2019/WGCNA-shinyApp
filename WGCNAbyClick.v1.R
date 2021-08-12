@@ -18,6 +18,8 @@ if (!require('ggpmisc')) install.packages('ggpmisc');
 if (!require('dplyr')) install.packages('dplyr');
 if (!require('WGCNA')) BiocManager::install('GO.db',update = FALSE);
 if (!require('WGCNA')) BiocManager::install('WGCNA',update = FALSE);
+if (!require('ComplexHeatmap')) BiocManager::install('ComplexHeatmap',update = FALSE);
+if (!require('circlize')) BiocManager::install('circlize',update = FALSE);
 if (!require('stringr')) install.packages('stringr');
 if (!require('ape')) install.packages('ape');
 if (!require('reshape2')) install.packages('reshape2');
@@ -29,7 +31,7 @@ if (!require('ggpubr')) install.packages('ggpubr');
 if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
-library(devtools)
+suppressMessages(library(devtools))
 if (!require('ShinyWGCNA')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
 suppressMessages(library(ShinyWGCNA))
 suppressMessages(library(shinyjs))
@@ -43,6 +45,8 @@ suppressMessages(library(dplyr))
 suppressMessages(library(WGCNA))
 suppressMessages(library(stringr))
 suppressMessages(library(ape))
+suppressMessages(library(ComplexHeatmap))
+suppressMessages(library(circlize))
 suppressMessages(library(reshape2))
 suppressMessages(library(edgeR))
 suppressMessages(library(shinythemes))
@@ -64,7 +68,7 @@ allowWGCNAThreads()
 # 01. UI =========================
 ## logo
 customLogo <- shinyDashboardLogoDIY(
-  
+
   boldText = "ShawnLearnBioinfo"
   ,mainText = "WGCNA by click mouse"
   ,textSize = 14
@@ -73,7 +77,7 @@ customLogo <- shinyDashboardLogoDIY(
   ,badgeTextSize = 2
   ,badgeBackColor = "#40E0D0"
   ,badgeBorderRadius = 3
-  
+
 )
 
 ui <- shinyUI(
@@ -143,7 +147,7 @@ ui <- shinyUI(
                  ),# div
                  mainPanel(
                    fluidPage(
-                     actionButton("toggleSidebar", 
+                     actionButton("toggleSidebar",
                                   "Toggle sidebar"),
                      actionButton("action1", "Update information!"),
                      tabsetPanel(
@@ -162,10 +166,10 @@ ui <- shinyUI(
                                 jqui_resizable(
                                   plotOutput("clustPlot")
                                 ),
-                                downloadButton("downfig1","Download")        
+                                downloadButton("downfig1","Download")
                        )# tabPanel
                      )
-                     
+
                    )# fluidPage
                  )#mainPanel
                ) # sidebarLayout
@@ -183,7 +187,7 @@ ui <- shinyUI(
                          label = HTML('R<sup>2</sup> cutoff'),
                          min = 0,
                          max = 1,
-                         value = 0.8 
+                         value = 0.8
                        ),
                        br(),
                        HTML('<font size = 2.5 color = #7a8788><i>WGCNA will generate a recommended power value. If it does not match, a power will be given according to the experience list in the WGCNA FAQ. I don’t like this experience power very much. <font color = blue>If you find that the R <sup>2</sup> value corresponding to experience power given by the software lower than your setting Threshold </font>,<font color = purple><b> please select a customized power based on the SFT plot.</b></i></font></font>'),
@@ -193,7 +197,7 @@ ui <- shinyUI(
                          choices = c("Recommended","Customized"),
                          selected = "Recommended"
                        ),
-                       
+
                        sliderInput(
                          inputId = "PowerSelect",
                          label = "Final Power Selection",
@@ -206,7 +210,7 @@ ui <- shinyUI(
                  mainPanel(
                    fluidPage(
                      #### output field
-                     actionButton("toggleSidebar2", 
+                     actionButton("toggleSidebar2",
                                   "Toggle sidebar"),
                      tabsetPanel(
                        tabPanel(title = "Select Power",height = "500px",width = "100%",
@@ -224,8 +228,8 @@ ui <- shinyUI(
                                           value = 10),
                                 actionButton("adjust2","Set fig size"),
                                 downloadButton("downfig2","Download")
-                                
-                                
+
+
                        ),
                        tabPanel(title = "Information of sft table",height = "500px",width = "100%",
                                 icon = icon("table"),
@@ -245,7 +249,7 @@ ui <- shinyUI(
                                           value = 10),
                                 actionButton("adjust3","Set fig size"),
                                 downloadButton("downfig3","Download")
-                                
+
                        )## tabPanel
                      )## tabsetPanel
                    )## fluidPage
@@ -262,7 +266,7 @@ ui <- shinyUI(
                      width = 2,
                      sliderInput(
                        inputId = "minMsize",
-                       label = "min Module Size",min = 20,max = 200,value = 30
+                       label = "min Module Size",min = 0,max = 200,value = 30
                      ),
                      sliderInput(
                        inputId = "mch",
@@ -273,7 +277,7 @@ ui <- shinyUI(
                  ),
                  mainPanel(
                    fluidPage(
-                     actionButton("toggleSidebar3", 
+                     actionButton("toggleSidebar3",
                                   "Toggle sidebar"),
                      tabsetPanel(
                        tabPanel(
@@ -291,7 +295,7 @@ ui <- shinyUI(
                                    value = 10),
                          actionButton("adjust4","Set fig size"),
                          downloadButton("downfig4","Download"),
-                         
+
                          br(),
                          br(),
                          tableOutput("m2num")
@@ -333,7 +337,7 @@ ui <- shinyUI(
                      width = 2,
                      fileInput(
                        inputId = "traitData",
-                       label = "Upload trait data",
+                       label = "Upload expression matrix",
                        accept = c(".txt",".csv",".xls")
                      ),
                      textInput(
@@ -345,7 +349,7 @@ ui <- shinyUI(
                    )
                  ),
                  mainPanel(
-                   actionButton("toggleSidebar4", 
+                   actionButton("toggleSidebar4",
                                 "Toggle sidebar"),
                    fluidPage(
                      tabsetPanel(
@@ -401,7 +405,7 @@ ui <- shinyUI(
                    )
                  ),
                  mainPanel(
-                   actionButton("toggleSidebar5", 
+                   actionButton("toggleSidebar5",
                                 "Toggle sidebar"),
                    fluidPage(
                      tabsetPanel(
@@ -521,7 +525,7 @@ ui <- shinyUI(
                  )
                )
              )##tabPanel
-             
+
   )## navbarPage
 )## UI
 
@@ -552,7 +556,7 @@ server <- function(input, output, session){
                header = T,
                stringsAsFactors = F)
   })
-  
+
   output$Inputcheck = renderUI({
     if(is.null(data())){return()}
     if(length(which(is.na(data()))) == 0) {
@@ -566,7 +570,7 @@ server <- function(input, output, session){
        '
       )
     }
-    
+
   })
   ## count number
   fmt = reactive({
@@ -596,7 +600,7 @@ server <- function(input, output, session){
       exp.ds$table = getdatExpr(rawdata = data(),
                                 RcCutoff = rccutoff(),samplePerc = sampP(),
                                 datatype = fmt(),method = mtd())
-    }  
+    }
   )
   num = reactive({
     if(is.null(datExpr1())){return()}
@@ -607,7 +611,7 @@ server <- function(input, output, session){
     if(length(which(is.na(data()))) != 0) {return()}
     input$action1
     withProgress(message = 'Calculation in progress',
-                 detail = 'This may take a while...', value = 0, 
+                 detail = 'This may take a while...', value = 0,
                  expr = {
                    for (i in 1:15) {
                      incProgress(1/15)
@@ -624,7 +628,7 @@ server <- function(input, output, session){
       exp.ds$table2 = getdatExpr2(datExpr = exp.ds$table,GeneNumCut = 1-GNC()/nrow(exp.ds$table),cutmethod = cutmethod())
       exp.ds$layout = as.character(input$treelayout)
       exp.ds$param = getsampleTree(exp.ds$table2,layout = exp.ds$layout)
-    }  
+    }
   )
   output$filter2 = renderUI({
     if(is.null(data())){return()}
@@ -652,18 +656,18 @@ server <- function(input, output, session){
   rscut = reactive({
     as.numeric(input$CutoffR)
   })
-  
+
   observeEvent(
     input$Startsft,
     {
       exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut())
-    }  
+    }
   )
   output$powerout = renderUI({
     if(is.null(exp.ds$table2)){return()}
     input$Startsft
     withProgress(message = 'Calculation in progress',
-                 detail = 'This may take a while...', value = 0, 
+                 detail = 'This may take a while...', value = 0,
                  expr = {
                    for (i in 1:15) {
                      incProgress(1/15)
@@ -673,7 +677,7 @@ server <- function(input, output, session){
     isolate(HTML(paste0('<font color = red> <b>The power recommended by WGCNA is:</b> </font><font color = bule><b>',exp.ds$sft$power,'</b></font> ','<br/>',
                         '<font color = pink> <i>If all power values lower than the R square threshold which you set, it means that the power value is an empirical value. At this time, you need to infer a power value based on the results on your picture and check whether it can form a scale-free network. </i> </font>')))
   })
-  
+
   ## outsft
   output$sftplot = renderPlot({
     if(is.null(exp.ds$table2)){return()}
@@ -703,10 +707,10 @@ server <- function(input, output, session){
         exp.ds$power = pcus()
         exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
       }
-      
-    }  
+
+    }
   )
-  
+
   output$sfttest = renderPlot({
     if(is.null(exp.ds$sft)){return()}
     input$Startcheck
@@ -745,25 +749,25 @@ server <- function(input, output, session){
     if(is.null(exp.ds$net)){return()}
     table(exp.ds$moduleColors)
   })
-  
+
 
     output$eah = renderPlot({
       input$Startnet
       if(is.null(exp.ds$net)){return()}
-      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap", 
+      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap",
                             marDendro = c(3,3,2,4),
-                            marHeatmap = c(3,4,2,2), plotDendrograms = T, 
+                            marHeatmap = c(3,4,2,2), plotDendrograms = T,
                             xLabelsAngle = 90)
     })
 
 
-  
+
   output$g2m = DT::renderDataTable({
     input$Startnet
     if(is.null(exp.ds$net)){return()}
     exp.ds$Gene2module
   })
-  
+
   phen <- reactive({
     file2 <- input$traitData
     if(is.null(file2)){return()}
@@ -772,8 +776,8 @@ server <- function(input, output, session){
                header = T,
                stringsAsFactors = F)
   })
-  
-  
+
+
   observeEvent(
     input$starttrait,
     {
@@ -803,6 +807,16 @@ server <- function(input, output, session){
       exp.ds$modTraitP = exp.ds$traitout$modTraitP
       exp.ds$textMatrix = exp.ds$traitout$textMatrix
       exp.ds$KME = getKME(datExpr = exp.ds$table2,moduleColors = exp.ds$moduleColors,MEs_col = exp.ds$MEs_col)
+      exp.ds$mod_color = gsub(pattern = "ME",replacement = "",rownames(exp.ds$modTraitCor))
+      exp.ds$mod_color_anno = setNames(exp.ds$mod_color,rownames(exp.ds$modTraitCor))
+      exp.ds$Left_anno = rowAnnotation(
+        Module = rownames(exp.ds$modTraitCor),
+        col = list(
+          Module = exp.ds$mod_color_anno
+        ),
+        show_legend = F,
+        show_annotation_name = F
+      )
     }
   )
 
@@ -810,41 +824,54 @@ server <- function(input, output, session){
       input$starttrait
       if(is.null(phen())){return()}
       if(is.null(exp.ds$phen)){return()}
-      
-      labeledHeatmap(Matrix = exp.ds$modTraitCor, xLabels = colnames(exp.ds$phen), 
-                     yLabels = colnames(exp.ds$MEs_col), 
-                     cex.lab = 0.7, xLabelsAngle = exp.ds$xangle, xLabelsAdj = 1,
-                     ySymbols = substr(colnames(exp.ds$MEs_col),3,1000), colorLabels = FALSE, 
-                     colors = colorRampPalette(c("orange","white","purple"))(100), 
-                     textMatrix = exp.ds$textMatrix, setStdMargins = FALSE, 
-                     cex.text = 0.6, zlim = c(-1,1),
-                     main = paste("Module-trait relationships"))
-      
+
+      Heatmap(
+        matrix = exp.ds$modTraitCor,
+        cluster_rows = F, cluster_columns = F,
+        left_annotation = exp.ds$Left_anno,
+        cell_fun = function(j,i,x,y,width,height,fill) {
+          grid.text(sprintf(exp.ds$textMatrix[i,j]),x,y,gp = gpar(fontsize = 12))
+        },
+        row_names_side = "left",
+        column_names_rot = 0,
+        heatmap_legend_param = list(
+          at = c(-1,-0.5,0,0.5, 1),
+          labels = c("-1","-0.5", "0","0.5", "1"),
+          title = "",
+          legend_height = unit(9, "cm"),
+          title_position = "lefttop-rot"
+        ),
+        rect_gp = gpar(col = "black", lwd = 1.2),
+        column_title = "Module-trait relationships",
+        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+        col = colorRamp2(c(-1, 0, 1), c("blue", "white", "yellow"))
+      )
+
     })
-  
-  
-  
+
+
+
   output$traitmat = DT::renderDataTable({
     input$starttrait
     if(is.null(phen())){return()}
     if(is.null(exp.ds$phen)){return()}
     as.data.frame(exp.ds$modTraitCor)
   })
-  
+
   output$traitp = DT::renderDataTable({
     input$starttrait
     if(is.null(phen())){return()}
     if(is.null(exp.ds$phen)){return()}
     as.data.frame(exp.ds$modTraitP)
   })
-  
+
   output$KME = DT::renderDataTable({
     input$starttrait
     if(is.null(phen())){return()}
     if(is.null(exp.ds$phen)){return()}
     as.data.frame(exp.ds$KME)
   })
-  
+
   observeEvent(
     input$InterMode,
     {
@@ -855,10 +882,10 @@ server <- function(input, output, session){
       exp.ds$st = as.character(input$strait)
       exp.ds$Heatmap = moduleheatmap(datExpr = exp.ds$table2,MEs = exp.ds$MEs_col,which.module = exp.ds$sml,
                                      moduleColors = exp.ds$moduleColors)
-      
+
     }
   )
-  
+
   output$GSCon = renderPlot({
     input$InterMode
     if(is.null(exp.ds$st)){return()}
@@ -867,14 +894,14 @@ server <- function(input, output, session){
                    traitData = exp.ds$phen,moduleColors = exp.ds$moduleColors,
                    geneModuleMembership = exp.ds$MM,nSamples = exp.ds$nSamples)
   })
-  
+
   output$heatmap = renderPlot({
     input$InterMode
     if(is.null(exp.ds$st)){return()}
     if(is.null(exp.ds$sml)){return()}
     exp.ds$Heatmap
   })
-  
+
   output$GSMM.all = renderPlot({
     input$InterMode
     if(is.null(exp.ds$st)){return()}
@@ -883,11 +910,11 @@ server <- function(input, output, session){
               traitData = exp.ds$phen,
               datExpr = exp.ds$table2,
               moduleColors = exp.ds$moduleColors,
-              geneModuleMembership = exp.ds$MM, 
+              geneModuleMembership = exp.ds$MM,
               MEs = exp.ds$MEs_col,
               nSamples = exp.ds$nSamples)
   })
-  
+
   observeEvent(
     input$starthub,
     {
@@ -899,7 +926,7 @@ server <- function(input, output, session){
                                 KME = exp.ds$KME,GS.cut = exp.ds$GScut,kME.cut =exp.ds$kMEcut,datTrait = exp.ds$phen )
     }
   )
-  
+
   observeEvent(
     input$threadd,
     {
@@ -917,7 +944,7 @@ server <- function(input, output, session){
     if(is.null(exp.ds$hubt)){return()}
     exp.ds$hub.all$hub1
   })
-  
+
   output$kMEhub = DT::renderDataTable({
     input$starthub
     if(is.null(exp.ds$hubml)){return()}
@@ -926,14 +953,14 @@ server <- function(input, output, session){
     if(is.null(exp.ds$GScut)){return()}
     exp.ds$hub.all$hub3
   })
-  
+
   output$edgeFile = DT::renderDataTable({
     input$threadd
     if(is.null(exp.ds$hubml)){return()}
     if(is.null(exp.ds$threshold)){return()}
     exp.ds$cyt[[1]]
   })
-  
+
   output$nodeFile = DT::renderDataTable({
     input$threadd
     if(is.null(exp.ds$hubml)){return()}
@@ -943,7 +970,7 @@ server <- function(input, output, session){
 
 # download ----------------------------------------------------------------
 
-  
+
   observeEvent(
     input$adjust1,
     {
@@ -969,7 +996,7 @@ server <- function(input, output, session){
     input$adjust4,
     {
       downloads$width4 <- as.numeric(input$width4)
-      downloads$height4 <- as.numeric(input$height4) 
+      downloads$height4 <- as.numeric(input$height4)
     }
   )
   observeEvent(
@@ -1050,9 +1077,9 @@ server <- function(input, output, session){
     },
     content = function(file) {
       pdf(file = file,width = downloads$width5, height = downloads$height5)
-      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap", 
+      plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap",
                             marDendro = c(3,3,2,4),
-                            marHeatmap = c(3,4,2,2), plotDendrograms = T, 
+                            marHeatmap = c(3,4,2,2), plotDendrograms = T,
                             xLabelsAngle = 90)
       dev.off()
     }
@@ -1063,14 +1090,29 @@ server <- function(input, output, session){
     },
     content = function(file) {
       pdf(file = file,width = downloads$width6, height = downloads$height6)
-      labeledHeatmap(Matrix = exp.ds$modTraitCor, xLabels = colnames(exp.ds$phen), 
-                     yLabels = colnames(exp.ds$MEs_col), 
-                     cex.lab = 0.7, xLabelsAngle = exp.ds$xangle, xLabelsAdj = 1,
-                     ySymbols = substr(colnames(exp.ds$MEs_col),3,1000), colorLabels = FALSE, 
-                     colors = colorRampPalette(c("orange","white","purple"))(100), 
-                     textMatrix = exp.ds$textMatrix, setStdMargins = FALSE, 
-                     cex.text = 0.6, zlim = c(-1,1),
-                     main = paste("Module-trait relationships"))
+
+      Heatmap(
+        matrix = exp.ds$modTraitCor,
+        cluster_rows = F, cluster_columns = F,
+        left_annotation = exp.ds$Left_anno,
+        cell_fun = function(j,i,x,y,width,height,fill) {
+          grid.text(sprintf(exp.ds$textMatrix[i,j]),x,y,gp = gpar(fontsize = 12))
+        },
+        row_names_side = "left",
+        column_names_rot = 0,
+        heatmap_legend_param = list(
+          at = c(-1,-0.5,0,0.5, 1),
+          labels = c("-1","-0.5", "0","0.5", "1"),
+          title = "",
+          legend_height = unit(9, "cm"),
+          title_position = "lefttop-rot"
+        ),
+        rect_gp = gpar(col = "black", lwd = 1.2),
+        column_title = "Module-trait relationships",
+        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+        col = colorRamp2(c(-1, 0, 1), c("blue", "white", "yellow"))
+      )
+
       dev.off()
     }
   )
@@ -1087,7 +1129,7 @@ server <- function(input, output, session){
     }
   )
   output$downfig8 = downloadHandler(
-    
+
     filename = function() {
       "08.MEandGeneHeatmap.pdf"
     },
@@ -1098,7 +1140,7 @@ server <- function(input, output, session){
     }
   )
   output$downfig10 = downloadHandler(
-    
+
     filename = function() {
       "09.GSvsMM.all.pdf"
     },
@@ -1113,7 +1155,7 @@ server <- function(input, output, session){
     }
   )
   output$downtbl2 = downloadHandler(
-    
+
     filename = function() {
       if(is.null(exp.ds$net)){return()}
       "01.Gene2Module.xls"
@@ -1127,7 +1169,7 @@ server <- function(input, output, session){
       "02.KMEofAllGenes.xls"
     },
     content = function(file) {
-      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = T,quote = F)
+      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = F,quote = F)
     }
   )
   output$downtbl4 = downloadHandler(
