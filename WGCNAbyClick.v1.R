@@ -32,7 +32,7 @@ if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
 suppressMessages(library(devtools))
-if (!require('ShinyWGCNA')) install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
+if (!require('ShinyWGCNA')) devtools::install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
 suppressMessages(library(ShinyWGCNA))
 suppressMessages(library(shinyjs))
 suppressMessages(library(dashboardthemes))
@@ -340,6 +340,15 @@ ui <- shinyUI(
                        label = "Upload expression matrix",
                        accept = c(".txt",".csv",".xls")
                      ),
+                     colourpicker::colourInput(inputId = "colormin",
+                                               label = "Minimum",
+                                               value = "purple"),
+                     colourpicker::colourInput(inputId = "colormid",
+                                               label = "Middle",
+                                               value = "white"),
+                     colourpicker::colourInput(inputId = "colormax",
+                                               label = "Maxmum",
+                                               value = "yellow"),
                      textInput(
                        inputId = "xangle",
                        label = "x axis label angle",
@@ -393,13 +402,19 @@ ui <- shinyUI(
                  div(id = "sidebar5",
                    sidebarPanel(
                      width = 2,
-                     textInput(
+                     selectInput(
                        inputId = "strait",
-                       label = "Select traits"
+                       label = "Select traits",
+                       choices = c("select a trait","trait2","..."),
+                       selected = "select a trait",
+                       multiple = F
                      ),
-                     textInput(
+                     selectInput(
                        inputId = "smodule",
-                       label = "Select module"
+                       label = "Select module",
+                       choices = c("red","black","..."),
+                       selected = "red",
+                       multiple = F
                      ),
                      actionButton("InterMode","Start Analysis")
                    )
@@ -467,13 +482,13 @@ ui <- shinyUI(
                  div(id = "sidebar6",
                      sidebarPanel(
                        width = 2,
-                       textInput(
+                       selectInput(
                          inputId = "hubtrait",
-                         label = "Select trait"
+                         label = "Select trait",choices = c("Select a trait","..."),multiple = F
                        ),
-                       textInput(
+                       selectInput(
                          inputId = "hubmodule",
-                         label = "Select module"
+                         label = "Select module",choices = c("Select a module","..."),multiple = F
                        ),
                        actionButton("starthub","Start Analysis")
                      )
@@ -576,9 +591,22 @@ server <- function(input, output, session){
   fmt = reactive({
     input$format
   })
+  observe({
+    if(fmt() == "count") {
+      updateSelectInput(session, "method1",choices = c(VST = "varianceStabilizingTransformation",
+                                                       logCPM = "lgcpm"))
+      updateTextInput(session,"RCcut",value = 10)
+    } else if(fmt() == "FPKM") {
+      updateSelectInput(session, "method1",choices = c(FPKM = "rawFPKM",
+                                                       logFPKM = "lgFPKM"))
+      updateTextInput(session,"RCcut",value = 1)
+    }
+
+  })
   mtd = reactive({
     input$method1
   })
+
   sampP = reactive({
     as.numeric(input$SamPer)
   })
@@ -803,11 +831,14 @@ server <- function(input, output, session){
       exp.ds$traitout = getMt(phenotype = exp.ds$phen,MEs_col = exp.ds$MEs_col,
                               nSamples = exp.ds$nSamples,moduleColors = exp.ds$moduleColors,datExpr = exp.ds$table2)
       exp.ds$xangle = as.numeric(input$xangle)
+      exp.ds$c_min = as.character(input$colormin)
+      exp.ds$c_mid = as.character(input$colormid)
+      exp.ds$c_max = as.character(input$colormax)
       exp.ds$modTraitCor = exp.ds$traitout$modTraitCor
       exp.ds$modTraitP = exp.ds$traitout$modTraitP
       exp.ds$textMatrix = exp.ds$traitout$textMatrix
       exp.ds$KME = getKME(datExpr = exp.ds$table2,moduleColors = exp.ds$moduleColors,MEs_col = exp.ds$MEs_col)
-      exp.ds$mod_color = gsub(pattern = "ME",replacement = "",rownames(exp.ds$modTraitCor))
+      exp.ds$mod_color = gsub(pattern = "^..",replacement = "",rownames(exp.ds$modTraitCor))
       exp.ds$mod_color_anno = setNames(exp.ds$mod_color,rownames(exp.ds$modTraitCor))
       exp.ds$Left_anno = rowAnnotation(
         Module = rownames(exp.ds$modTraitCor),
@@ -833,7 +864,7 @@ server <- function(input, output, session){
           grid.text(sprintf(exp.ds$textMatrix[i,j]),x,y,gp = gpar(fontsize = 12))
         },
         row_names_side = "left",
-        column_names_rot = 0,
+        column_names_rot = exp.ds$xangle,
         heatmap_legend_param = list(
           at = c(-1,-0.5,0,0.5, 1),
           labels = c("-1","-0.5", "0","0.5", "1"),
@@ -844,7 +875,7 @@ server <- function(input, output, session){
         rect_gp = gpar(col = "black", lwd = 1.2),
         column_title = "Module-trait relationships",
         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-        col = colorRamp2(c(-1, 0, 1), c("blue", "white", "yellow"))
+        col = colorRamp2(c(-1, 0, 1), c(exp.ds$c_min, exp.ds$c_mid, exp.ds$c_max))
       )
 
     })
@@ -870,6 +901,19 @@ server <- function(input, output, session){
     if(is.null(phen())){return()}
     if(is.null(exp.ds$phen)){return()}
     as.data.frame(exp.ds$KME)
+  })
+  s_mod = reactive({
+    gsub(pattern = "^..",replacement = "",rownames(exp.ds$modTraitP))
+  })
+  observe({
+    updateSelectInput(session, "smodule",choices = s_mod())
+  })
+  
+  s_trait = reactive({
+    colnames(exp.ds$modTraitP)
+  })
+  observe({
+    updateSelectInput(session, "strait",choices = s_trait())
   })
 
   observeEvent(
@@ -915,6 +959,14 @@ server <- function(input, output, session){
               nSamples = exp.ds$nSamples)
   })
 
+  observe({
+    updateSelectInput(session, "hubmodule",choices = s_mod())
+  })
+  
+  observe({
+    updateSelectInput(session, "hubtrait",choices = s_trait())
+  })
+  
   observeEvent(
     input$starthub,
     {
@@ -1169,7 +1221,7 @@ server <- function(input, output, session){
       "02.KMEofAllGenes.xls"
     },
     content = function(file) {
-      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = F,quote = F)
+      write.table(x = exp.ds$KME,file = file,sep = "\t",row.names = T,quote = F)
     }
   )
   output$downtbl4 = downloadHandler(
