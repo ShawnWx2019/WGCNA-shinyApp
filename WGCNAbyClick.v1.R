@@ -1177,7 +1177,7 @@ server <- function(input, output, session){
           grid.text(sprintf(exp.ds$textMatrix[i,j]),x,y,gp = gpar(fontsize = 12))
         },
         row_names_side = "left",
-        column_names_rot = 0,
+        column_names_rot = exp.ds$xangle,
         heatmap_legend_param = list(
           at = c(-1,-0.5,0,0.5, 1),
           labels = c("-1","-0.5", "0","0.5", "1"),
@@ -1188,7 +1188,7 @@ server <- function(input, output, session){
         rect_gp = gpar(col = "black", lwd = 1.2),
         column_title = "Module-trait relationships",
         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-        col = colorRamp2(c(-1, 0, 1), c("blue", "white", "yellow"))
+        col = colorRamp2(c(-1, 0, 1), c(exp.ds$c_min, exp.ds$c_mid, exp.ds$c_max))
       ))
 
       dev.off()
@@ -1196,7 +1196,7 @@ server <- function(input, output, session){
   )
   output$downfig7 = downloadHandler(
     filename = function() {
-      "07.GS-Connectivity.pdf"
+      paste0("07.GS",exp.ds$sml,"-",exp.ds$st,"-Connectivity.pdf")
     },
     content = function(file) {
       pdf(file = file,width = downloads$width7, height = downloads$height7)
@@ -1209,7 +1209,7 @@ server <- function(input, output, session){
   output$downfig8 = downloadHandler(
 
     filename = function() {
-      "08.MEandGeneHeatmap.pdf"
+      paste0("08.",exp.ds$sml,"-",exp.ds$st,"MEandGeneHeatmap.pdf")
     },
     content = function(file) {
       pdf(file = file,width = downloads$width8, height = downloads$height8)
@@ -1252,7 +1252,7 @@ server <- function(input, output, session){
   )
   output$downtbl4 = downloadHandler(
     filename = function() {
-      "03.HubbykMEandGS.xls"
+      paste0("03.",exp.ds$hubml,"-",exp.ds$hubt,"hubgene_by_GS_MM.xls")
     },
     content = function(file) {
       write.table(x = exp.ds$hub.all$hub3,file = file,sep = "\t",row.names = F,quote = F)
@@ -1260,7 +1260,7 @@ server <- function(input, output, session){
   )
   output$downtbl5 = downloadHandler(
     filename = function() {
-      "04.cyt.edge.xls"
+      paste0("04.",exp.ds$hubml,".edge.xls")
     },
     content = function(file) {
       write.table(x = exp.ds$cyt[[1]],file = file,sep = "\t",row.names = F,quote = F)
@@ -1268,7 +1268,7 @@ server <- function(input, output, session){
   )
   output$downtbl6 = downloadHandler(
     filename = function() {
-      "04.cyt.node.xls"
+      paste0("04.cyt",exp.ds$hubml,".node.xls")
     },
     content = function(file) {
       write.table(x = exp.ds$cyt[[2]],file = file,sep = "\t",row.names = F,quote = F)
