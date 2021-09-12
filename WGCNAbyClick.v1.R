@@ -156,6 +156,7 @@ ui <- shinyUI(
                                 htmlOutput("Inputcheck"),
                                 htmlOutput("filter1"),
                                 htmlOutput("filter2"),
+                                
                        ),
                        tabPanel(title = "Preview of Input",height = "500px",width = "100%",
                                 icon = icon("table"),
@@ -167,6 +168,7 @@ ui <- shinyUI(
                                   plotOutput("clustPlot")
                                 ),
                                 downloadButton("downfig1","Download")
+                                
                        )# tabPanel
                      )
 
@@ -625,47 +627,45 @@ server <- function(input, output, session){
   observeEvent(
     input$action1,
     {
-      exp.ds$table = getdatExpr(rawdata = data(),
-                                RcCutoff = rccutoff(),samplePerc = sampP(),
-                                datatype = fmt(),method = mtd())
-    }
-  )
-  num = reactive({
-    if(is.null(datExpr1())){return()}
-    as.numeric(nrow(datExpr1()))
-  })
-  output$filter1 = renderUI({
-    if(is.null(data())){return()}
-    if(length(which(is.na(data()))) != 0) {return()}
-    input$action1
-    withProgress(message = 'Calculation in progress',
-                 detail = 'This may take a while...', value = 0,
-                 expr = {
-                   for (i in 1:15) {
-                     incProgress(1/15)
-                     Sys.sleep(0.25)
-                   }
-                 })
-    isolate(HTML(paste0('<font color = red> <b>After filtered by conditions:</b> </font>removing all features that have a count of less than say <font color = red><b>',rccutoff(),'</b></font> in more than <font color = red> <b>',100*sampP(),'% </b></font> of the samples','<br/>',
-                        '<font color = red> <b>Remaining Gene Numbers: </b> </font>',nrow(exp.ds$table))))
-  })
-  ## filter step2
-  observeEvent(
-    input$action1,
-    {
-      exp.ds$table2 = getdatExpr2(datExpr = exp.ds$table,GeneNumCut = 1-GNC()/nrow(exp.ds$table),cutmethod = cutmethod())
+      if(is.null(data())){return()}
+      if(length(which(is.na(data()))) != 0) {return()}
+      exp.ds$table = data.frame()
+      exp.ds$table2 = data.frame()
+      exp.ds$param = list()
       exp.ds$layout = as.character(input$treelayout)
-      exp.ds$param = getsampleTree(exp.ds$table2,layout = exp.ds$layout)
+
+      output$filter1 = renderUI({
+        input$action1
+        p_mass = c("Processing step1, remove very low expressed genes",
+                   paste("Processing step2, pick out high variation genes via",cutmethod()))
+        withProgress(
+          message = "Raw data normlization",
+          value = 0,{
+            for (i in 1:2) {
+             incProgress(1/2,detail = p_mass[i])
+            # 放一个彩蛋 incProgress(1/2,detail = c("找不到对象，找不到对象，找不到「对象」汪汪！>_< ~~","终于找到了 o_O ~~")[i])
+              if(i == 1) {
+                exp.ds$table = getdatExpr(rawdata = data(),
+                                          RcCutoff = rccutoff(),samplePerc = sampP(),
+                                          datatype = fmt(),method = mtd())
+              } else if (i == 2){
+                exp.ds$table2 = getdatExpr2(datExpr = exp.ds$table,
+                                            GeneNumCut = 1-GNC()/nrow(exp.ds$table),cutmethod = cutmethod())
+                exp.ds$param = getsampleTree(exp.ds$table2,layout = exp.ds$layout)
+              }
+              Sys.sleep(0.1)
+            }
+          }
+        )
+        isolate(HTML(paste0('<font color = red> <b>After filtered by conditions:</b> </font>removing all features that have a count of less than say <font color = red><b>',rccutoff(),'</b></font> in more than <font color = red> <b>',100*sampP(),'% </b></font> of the samples','<br/>',
+                            '<font color = red> <b>Remaining Gene Numbers: </b> </font>',nrow(exp.ds$table),'<br/>',
+                            '<font color = red> <b>After filtered by conditions:</b> </font>Genes with <font color = red><b>',cutmethod(),'</b></font> ranked top <font color = red> <b>',GNC(),' </b></font> of all expressed genes','<br/>',
+                            '<font color = red> <b>Remaining Gene Numbers: </b> </font>',ncol(exp.ds$table2))))
+      })
     }
   )
-  output$filter2 = renderUI({
-    if(is.null(data())){return()}
-    if(length(which(is.na(data()))) != 0) {return()}
-    if(is.null(exp.ds$table)){return()}
-    input$action1
-    isolate(HTML(paste0('<font color = red> <b>After filtered by conditions:</b> </font>Genes with <font color = red><b>',cutmethod(),'</b></font> ranked top <font color = red> <b>',GNC(),' </b></font> of all expressed genes','<br/>',
-                        '<font color = red> <b>Remaining Gene Numbers: </b> </font>',ncol(exp.ds$table2))))
-  })
+
+
   ## summary num
   output$Inputbl = DT::renderDataTable({
     if(is.null(data())){return()}
@@ -688,34 +688,42 @@ server <- function(input, output, session){
   observeEvent(
     input$Startsft,
     {
-      exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut())
+      if(is.null(exp.ds$table2)){return()}
+      exp.ds$sft = list()
+      output$powerout = renderUI({
+        sft_mess = c("pick soft threshold in processing ...",
+                     "Finish.")
+        withProgress(message = 'SFT selection', value = 0,
+                     expr = {
+                       for (i in 1:2) {
+                         incProgress(1/2, detail = sft_mess[i] )
+                         if (i == 1) {
+                           exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut())
+                         } else {
+                           return()
+                         }
+                         
+                       }
+                     })
+        isolate(HTML(paste0('<font color = red> <b>The power recommended by WGCNA is:</b> </font><font color = bule><b>',exp.ds$sft$power,'</b></font> ','<br/>',
+                            '<font color = pink> <i>If all power values lower than the R square threshold which you set, it means that the power value is an empirical value. At this time, you need to infer a power value based on the results on this plot and check whether it can form a scale-free network. </i> </font>')))
+      })
     }
   )
-  output$powerout = renderUI({
-    if(is.null(exp.ds$table2)){return()}
-    input$Startsft
-    withProgress(message = 'Calculation in progress',
-                 detail = 'This may take a while...', value = 0,
-                 expr = {
-                   for (i in 1:15) {
-                     incProgress(1/15)
-                     Sys.sleep(0.25)
-                   }
-                 })
-    isolate(HTML(paste0('<font color = red> <b>The power recommended by WGCNA is:</b> </font><font color = bule><b>',exp.ds$sft$power,'</b></font> ','<br/>',
-                        '<font color = pink> <i>If all power values lower than the R square threshold which you set, it means that the power value is an empirical value. At this time, you need to infer a power value based on the results on your picture and check whether it can form a scale-free network. </i> </font>')))
-  })
+
 
   ## outsft
   output$sftplot = renderPlot({
     if(is.null(exp.ds$table2)){return()}
     input$Startsft
+    if(length(exp.ds$sft) == 0){return()}
     exp.ds$sft$plot
   })
   ## outtbl
   output$sfttbl = DT::renderDataTable({
     if(is.null(exp.ds$table2)){return()}
     input$Startsft
+    if(length(exp.ds$sft) == 0){return()}
     as.data.frame(exp.ds$sft$sft)
   })
   ## test sft
@@ -728,20 +736,37 @@ server <- function(input, output, session){
   observeEvent(
     input$Startcheck,
     {
-      if(PowerTorF() == "Recommended"){
-        exp.ds$power = exp.ds$sft$power
-        exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
-      } else if (PowerTorF() == "Customized"){
-        exp.ds$power = pcus()
-        exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
-      }
-
+      if(is.null(exp.ds$table2)){return()}
+      if(is.null(exp.ds$sft)){return()}
+      sftcheck_mess = c("Checking scale free network ...",
+                        "Finish.")
+      exp.ds$power = exp.ds$sft$power
+      exp.ds$cksft = list()
+      withProgress(message = 'SFT selection', value = 0,
+                   expr = {
+                     for (i in 1:2) {
+                       incProgress(1/2, detail = sftcheck_mess[i] )
+                       if (i == 1) {
+                         if(PowerTorF() == "Recommended"){
+                           exp.ds$power = exp.ds$sft$power
+                           exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
+                         } else if (PowerTorF() == "Customized"){
+                           exp.ds$power = pcus()
+                           exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
+                         }
+                       } else {
+                         return()
+                       }
+                       
+                     }
+                   })
     }
   )
 
   output$sfttest = renderPlot({
     if(is.null(exp.ds$sft)){return()}
     input$Startcheck
+    if(length(exp.ds$cksft ) == 0){return()}
     exp.ds$cksft
   })
   mms = reactive({
@@ -753,6 +778,8 @@ server <- function(input, output, session){
   observeEvent(
     input$Startnet,
     {
+      if(is.null(exp.ds$table2)){return()}
+      if(is.null(exp.ds$power)){return()}
       exp.ds$netout = getnetwork(datExpr = exp.ds$table2,power = exp.ds$power,
                                  minModuleSize = mms(),mergeCutHeight = mch(),nGenes = exp.ds$param$nGenes)
       exp.ds$nSamples = nrow(exp.ds$table2)
@@ -777,9 +804,7 @@ server <- function(input, output, session){
     if(is.null(exp.ds$net)){return()}
     table(exp.ds$moduleColors)
   })
-
-
-    output$eah = renderPlot({
+  output$eah = renderPlot({
       input$Startnet
       if(is.null(exp.ds$net)){return()}
       plotEigengeneNetworks(exp.ds$MEs_col, "Eigengene adjacency heatmap",
@@ -787,9 +812,7 @@ server <- function(input, output, session){
                             marHeatmap = c(3,4,2,2), plotDendrograms = T,
                             xLabelsAngle = 90)
     })
-
-
-
+  
   output$g2m = DT::renderDataTable({
     input$Startnet
     if(is.null(exp.ds$net)){return()}
@@ -809,6 +832,7 @@ server <- function(input, output, session){
   observeEvent(
     input$starttrait,
     {
+      if(is.null(phen())){return()}
       if (ncol(phen()) == 2) {
         x <- phen()
         Tcol = as.character(unique(x[,2]))
@@ -855,7 +879,6 @@ server <- function(input, output, session){
       input$starttrait
       if(is.null(phen())){return()}
       if(is.null(exp.ds$phen)){return()}
-
       Heatmap(
         matrix = exp.ds$modTraitCor,
         cluster_rows = F, cluster_columns = F,
@@ -919,6 +942,8 @@ server <- function(input, output, session){
   observeEvent(
     input$InterMode,
     {
+      if(is.null(phen())){return()}
+      if(is.null(exp.ds$phen)){return()}
       exp.ds$GSout = getMM(datExpr = exp.ds$table2,MEs_col = exp.ds$MEs_col,nSamples = exp.ds$nSamples,corType = "pearson")
       exp.ds$MM = exp.ds$GSout$MM
       exp.ds$MMP = exp.ds$GSout$MMP
@@ -1086,12 +1111,13 @@ server <- function(input, output, session){
       downloads$height10 <-  as.numeric(input$height10)
     }
   )
+  library(ape)
   output$downfig1 = downloadHandler(
     filename = function() {
       "01.SampleCluster.nwk"
     },
     content = function(file) {
-      write.tree(exp.ds$param$tree,file = "01.SampleCluster.nwk")
+      write.tree(phy = exp.ds$param$tree,file = file)
     }
   )
   output$downfig2 = downloadHandler(
@@ -1143,7 +1169,7 @@ server <- function(input, output, session){
     content = function(file) {
       pdf(file = file,width = downloads$width6, height = downloads$height6)
 
-      Heatmap(
+      print(Heatmap(
         matrix = exp.ds$modTraitCor,
         cluster_rows = F, cluster_columns = F,
         left_annotation = exp.ds$Left_anno,
@@ -1163,7 +1189,7 @@ server <- function(input, output, session){
         column_title = "Module-trait relationships",
         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
         col = colorRamp2(c(-1, 0, 1), c("blue", "white", "yellow"))
-      )
+      ))
 
       dev.off()
     }
@@ -1174,9 +1200,9 @@ server <- function(input, output, session){
     },
     content = function(file) {
       pdf(file = file,width = downloads$width7, height = downloads$height7)
-      getverboseplot(datExpr = exp.ds$table2,module = exp.ds$sml,pheno = exp.ds$st,MEs = exp.ds$MEs_col,
+     print(getverboseplot(datExpr = exp.ds$table2,module = exp.ds$sml,pheno = exp.ds$st,MEs = exp.ds$MEs_col,
                      traitData = exp.ds$phen,moduleColors = exp.ds$moduleColors,
-                     geneModuleMembership = exp.ds$MM,nSamples = exp.ds$nSamples)
+                     geneModuleMembership = exp.ds$MM,nSamples = exp.ds$nSamples))
       dev.off()
     }
   )
@@ -1187,7 +1213,7 @@ server <- function(input, output, session){
     },
     content = function(file) {
       pdf(file = file,width = downloads$width8, height = downloads$height8)
-      exp.ds$Heatmap
+      print(exp.ds$Heatmap)
       dev.off()
     }
   )
@@ -1198,11 +1224,11 @@ server <- function(input, output, session){
     },
     content = function(file) {
       pdf(file = file,width = downloads$width8, height = downloads$height8)
-      MMvsGSall(which.trait = exp.ds$st,
+      print(MMvsGSall(which.trait = exp.ds$st,
                 traitData = exp.ds$phen,nSamples = exp.ds$nSamples,
                 datExpr = exp.ds$table2,
                 moduleColors = exp.ds$moduleColors,
-                geneModuleMembership = exp.ds$MM,MEs = exp.ds$MEs_col)
+                geneModuleMembership = exp.ds$MM,MEs = exp.ds$MEs_col))
       dev.off()
     }
   )
