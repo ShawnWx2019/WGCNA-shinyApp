@@ -285,6 +285,11 @@ ui <- shinyUI(
                        tabPanel(
                          title = "Cluster",height = "500px",width = "100%",
                          icon = icon("table"),
+                         textInput(inputId = "Select block size",
+                                   label = "blocksize",
+                                   value = 5000),
+                          p("MaxBlockSize, The default was 5000, 4GB memory could handle 8000-10000 genes, for 16GB memory you can select at most of 24000 genes in one block, 32GB should be enough for 30000-40000. Try to keep all selected genes in one block",
+                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
                          actionButton("Startnet","Start"),
                          jqui_resizable(
                            plotOutput("cluster")
@@ -780,8 +785,9 @@ server <- function(input, output, session){
     {
       if(is.null(exp.ds$table2)){return()}
       if(is.null(exp.ds$power)){return()}
+      exp.ds$blocksize = as.numeric(input$blocksize)
       exp.ds$netout = getnetwork(datExpr = exp.ds$table2,power = exp.ds$power,
-                                 minModuleSize = mms(),mergeCutHeight = mch(),nGenes = exp.ds$param$nGenes)
+                                 minModuleSize = mms(),mergeCutHeight = mch(),maxBlocksize = exp.ds$blocksize)
       exp.ds$nSamples = nrow(exp.ds$table2)
       exp.ds$net = exp.ds$netout$net
       exp.ds$moduleLabels = exp.ds$netout$moduleLabels
