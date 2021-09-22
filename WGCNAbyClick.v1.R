@@ -156,7 +156,7 @@ ui <- shinyUI(
                                 htmlOutput("Inputcheck"),
                                 htmlOutput("filter1"),
                                 htmlOutput("filter2"),
-                                
+
                        ),
                        tabPanel(title = "Preview of Input",height = "500px",width = "100%",
                                 icon = icon("table"),
@@ -168,7 +168,7 @@ ui <- shinyUI(
                                   plotOutput("clustPlot")
                                 ),
                                 downloadButton("downfig1","Download")
-                                
+
                        )# tabPanel
                      )
 
@@ -275,6 +275,11 @@ ui <- shinyUI(
                        label = "module cuttree height",
                        min = 0, max = 1, value = 0.25
                      ),
+                     textInput(inputId = "blocksize",
+                               label = "select max blocksize",
+                               value = 5000),
+                     p("MaxBlockSize, The default was 5000, 4GB memory could handle 8000-10000 genes, for 16GB memory you can select at most of 24000 genes in one block, 32GB should be enough for 30000-40000. Try to keep all selected genes in one block",
+                       style = "color: #7a8788;font-size: 12px; font-style:Italic")
                    )
                  ),
                  mainPanel(
@@ -285,11 +290,6 @@ ui <- shinyUI(
                        tabPanel(
                          title = "Cluster",height = "500px",width = "100%",
                          icon = icon("table"),
-                         textInput(inputId = "Select block size",
-                                   label = "blocksize",
-                                   value = 5000),
-                          p("MaxBlockSize, The default was 5000, 4GB memory could handle 8000-10000 genes, for 16GB memory you can select at most of 24000 genes in one block, 32GB should be enough for 30000-40000. Try to keep all selected genes in one block",
-                         style = "color: #7a8788;font-size: 12px; font-style:Italic"),
                          actionButton("Startnet","Start"),
                          jqui_resizable(
                            plotOutput("cluster")
@@ -707,7 +707,7 @@ server <- function(input, output, session){
                          } else {
                            return()
                          }
-                         
+
                        }
                      })
         isolate(HTML(paste0('<font color = red> <b>The power recommended by WGCNA is:</b> </font><font color = bule><b>',exp.ds$sft$power,'</b></font> ','<br/>',
@@ -762,7 +762,7 @@ server <- function(input, output, session){
                        } else {
                          return()
                        }
-                       
+
                      }
                    })
     }
@@ -780,14 +780,16 @@ server <- function(input, output, session){
   mch = reactive({
     as.numeric(input$mch)
   })
+  blocksize = reactive({
+    as.numeric(input$blocksize)
+  })
   observeEvent(
     input$Startnet,
     {
       if(is.null(exp.ds$table2)){return()}
       if(is.null(exp.ds$power)){return()}
-      exp.ds$blocksize = as.numeric(input$blocksize)
       exp.ds$netout = getnetwork(datExpr = exp.ds$table2,power = exp.ds$power,
-                                 minModuleSize = mms(),mergeCutHeight = mch(),maxBlocksize = exp.ds$blocksize)
+                                 minModuleSize = mms(),mergeCutHeight = mch(),maxBlocksize = blocksize())
       exp.ds$nSamples = nrow(exp.ds$table2)
       exp.ds$net = exp.ds$netout$net
       exp.ds$moduleLabels = exp.ds$netout$moduleLabels
@@ -818,7 +820,7 @@ server <- function(input, output, session){
                             marHeatmap = c(3,4,2,2), plotDendrograms = T,
                             xLabelsAngle = 90)
     })
-  
+
   output$g2m = DT::renderDataTable({
     input$Startnet
     if(is.null(exp.ds$net)){return()}
@@ -937,7 +939,7 @@ server <- function(input, output, session){
   observe({
     updateSelectInput(session, "smodule",choices = s_mod())
   })
-  
+
   s_trait = reactive({
     colnames(exp.ds$modTraitP)
   })
@@ -993,11 +995,11 @@ server <- function(input, output, session){
   observe({
     updateSelectInput(session, "hubmodule",choices = s_mod())
   })
-  
+
   observe({
     updateSelectInput(session, "hubtrait",choices = s_trait())
   })
-  
+
   observeEvent(
     input$starthub,
     {
