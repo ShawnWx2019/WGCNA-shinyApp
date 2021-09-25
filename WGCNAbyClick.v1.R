@@ -16,7 +16,7 @@ if (!require("DT")) install.packages('DT');
 if (!require('shiny')) install.packages('shiny');
 if (!require('ggpmisc')) install.packages('ggpmisc');
 if (!require('dplyr')) install.packages('dplyr');
-if (!require('WGCNA')) BiocManager::install('GO.db',update = FALSE);
+if (!require('GO.db')) BiocManager::install('GO.db',update = FALSE);
 if (!require('WGCNA')) BiocManager::install('WGCNA',update = FALSE);
 if (!require('ComplexHeatmap')) BiocManager::install('ComplexHeatmap',update = FALSE);
 if (!require('circlize')) BiocManager::install('circlize',update = FALSE);
@@ -31,6 +31,7 @@ if (!require('ggpubr')) install.packages('ggpubr');
 if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
+if (!require('colourpicker')) install.packages('colourpicker');
 suppressMessages(library(devtools))
 if (!require('ShinyWGCNA')) devtools::install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
 suppressMessages(library(ShinyWGCNA))
