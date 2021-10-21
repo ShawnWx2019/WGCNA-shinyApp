@@ -59,6 +59,7 @@ suppressMessages(library(shinyjqui))
 suppressMessages(library(ggpubr))
 options(shiny.maxRequestSize = 300*1024^2)
 options(scipen = 6)
+select = dplyr::select
 # type = "unsigned"
 # corType = "pearson"
 # maxPOutliers = ifelse(corType=="pearson",1,0.05)
