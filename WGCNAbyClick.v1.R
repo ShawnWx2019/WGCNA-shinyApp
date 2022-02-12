@@ -1009,8 +1009,17 @@ server <- function(input, output, session){
       exp.ds$hubt = as.character(input$hubtrait)
       exp.ds$kMEcut = as.numeric(input$kMEcut)
       exp.ds$GScut = as.numeric(input$GScut)
-      exp.ds$hub.all = hubgenes(datExpr = exp.ds$table2,mdl = exp.ds$hubml,power = exp.ds$power,trt = exp.ds$hubt,
-                                KME = exp.ds$KME,GS.cut = exp.ds$GScut,kME.cut =exp.ds$kMEcut,datTrait = exp.ds$phen )
+      print(exp.ds$hubml)
+      exp.ds$hub.all = hubgenes(datExpr = exp.ds$table2,
+                                mdl = exp.ds$hubml,
+                                power = exp.ds$power,
+                                trt = exp.ds$hubt,
+                                KME = exp.ds$KME,
+                                GS.cut = exp.ds$GScut,
+                                kME.cut =exp.ds$kMEcut,
+                                datTrait = exp.ds$phen,
+                                g2m = exp.ds$Gene2module
+                                )
     }
   )
 
@@ -1024,7 +1033,7 @@ server <- function(input, output, session){
                                 threshold = exp.ds$threshold)
     }
   )
-  checkAdjMat
+  # checkAdjMat
   output$cthub = DT::renderDataTable({
     input$starthub
     if(is.null(exp.ds$hubml)){return()}
