@@ -32,6 +32,7 @@ if (!require('patchwork')) install.packages('patchwork');
 if (!require('tidyverse')) install.packages('tidyverse');
 if (!require('shinyjqui')) install.packages('shinyjqui');
 if (!require('colourpicker')) install.packages('colourpicker');
+if (!require('conflicted')) BiocManager::install('conflicted',update = FALSE);
 suppressMessages(library(devtools))
 if (!require('ShinyWGCNA')) devtools::install_github("ShawnWx2019/WGCNAShinyFun",ref = "master");
 suppressMessages(library(ShinyWGCNA))
@@ -57,9 +58,14 @@ suppressMessages(library(patchwork))
 suppressMessages(library(tidyverse))
 suppressMessages(library(shinyjqui))
 suppressMessages(library(ggpubr))
+suppressMessages(library(conflicted))
 options(shiny.maxRequestSize = 300*1024^2)
 options(scipen = 6)
-select = dplyr::select
+conflict_prefer("select","dplyr")
+conflict_prefer("filter","dplyr")
+conflict_prefer("rename","dplyr")
+conflict_prefer("desc","dplyr")
+conflict_prefer("cor","stats")
 # type = "unsigned"
 # corType = "pearson"
 # maxPOutliers = ifelse(corType=="pearson",1,0.05)
