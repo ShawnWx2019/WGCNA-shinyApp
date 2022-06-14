@@ -998,7 +998,6 @@ server <- function(input, output, session){
       column_title_gp = gpar(fontsize = 15, fontface = "bold"),
       col = colorRamp2(c(-1, 0, 1), c(exp.ds$c_min, exp.ds$c_mid, exp.ds$c_max))
     )
-    
   })
   
   output$traitmat = DT::renderDataTable({
@@ -1029,6 +1028,7 @@ server <- function(input, output, session){
       exp.ds$kme_method = as.numeric(input$inter_method);
       exp.ds$kme_cutoff = as.numeric(input$kme_cutoff);
       exp.ds$kme_outlist = iterative_out(
+        g2m = exp.ds$Gene2module,
         rawMat = data(),
         tbl = as.data.frame(exp.ds$KME),
         method = exp.ds$kme_method,
