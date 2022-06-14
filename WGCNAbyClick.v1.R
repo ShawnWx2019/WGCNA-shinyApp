@@ -182,7 +182,7 @@ ui <- shinyUI(
                                 ),
                                 downloadButton("downfig1","Download")
                        ),# tabPanel
-                       tabPanel(title = "RemoveOutlier",height = "500px",width = "100%",
+                       tabPanel(title = "RemoveOutlier (option)",height = "500px",width = "100%",
                                 icon = icon("trash"),
                                 selectInput(
                                   inputId = "outlier",
@@ -391,7 +391,6 @@ ui <- shinyUI(
                        hr(style = 'border-top: dotted 2px green;'),
                        h4("Iterative WGCNA (option)"),
                        p('Skip this step if you do not interested.'),
-                       h5("Method1"),
                        sliderInput(
                          inputId = "kme_cutoff",
                          label = "KME cutoff",
@@ -403,6 +402,7 @@ ui <- shinyUI(
                          choices = c(1,2),
                          selected = 1
                        ),
+                       h5("Method1"),
                        p("For iterative WGCNA expression geneset output,It is recommended that the threshold value of KME ≥ 0.8 and not too low",style = "color: #7a8788;font-size: 12px; font-style:Italic"),
                        a("Please read and cite the paper carefully, and manually execute the iteration WGCNA",href="https://www.biorxiv.org/content/10.1101/234062v1","iterativeWGCNA: iterative refinement to improve module detection from WGCNA co-expression networks",style = "color: blue;font-size: 12px; font-style:Italic"),
                        br(),
@@ -447,7 +447,7 @@ ui <- shinyUI(
                          downloadButton("downtbl3","download")
                        ),
                        tabPanel(
-                         title = "Iterative WGCNA",height = "500px",width = "100%",
+                         title = "Iterative WGCNA (option)",height = "500px",width = "100%",
                          icon = icon("table"),
                          actionButton(inputId = "run_filter",label = "Run KME filter",icon = icon("play")),
                          h3("Retained Genesets"),
