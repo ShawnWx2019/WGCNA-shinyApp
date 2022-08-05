@@ -458,6 +458,16 @@ ui <- shinyUI(
                          br(),
                          downloadButton("downtbl_Iter_1","download retained Geneset."),
                          downloadButton("downtbl_Iter_2","download removed Geneset")
+                       ),
+                       tabPanel(
+                         title = "Env output (option)",
+                         icon = icon("file"),
+                         p("Data integration and download.The EnvImg.rds file can be used for data analysis in R.",style = "color: #7a8788;font-size: 16px; font-style:Italic"),
+                         br(),
+                         p("Run the following code in R.",style = "color: green;font-size: 14px; font-style:Italic"),
+                         p("readRSD('filepath/EnvImg.rsd')",style = "color: blue;font-size: 14px;"),
+                         actionButton("Integrate_data","Integrate Data"),
+                         downloadButton("downtbl_EnvImg","download global environment.")
                        )
                      )
                    )
@@ -1179,6 +1189,37 @@ server <- function(input, output, session){
     exp.ds$cyt[[2]]
   })
   
+  observeEvent(
+    input$Integrate_data,
+    {
+      exp.ds$data_interagrate = list(
+        expmat = exp.ds$table2,
+        traitmat = exp.ds$phen,
+        expmat_format = as.character(fmt()),
+        method = as.character(mtd()),
+        samplePercentage = as.numeric(sampP()),
+        rccutoff = as.numeric(rccutoff()),
+        GNC = as.numeric(GNC()),
+        cutmethod = as.character(cutmethod()),
+        power = exp.ds$power,
+        min_module_size = as.numeric(mms()),
+        module_cuttree_height = as.numeric(mch()),
+        blocksize = as.numeric(blocksize()),
+        net = exp.ds$net,
+        moduleLabels = exp.ds$moduleLabels,
+        moduleCoolors = exp.ds$moduleColors,
+        MEs = exp.ds$MEs,
+        MEs_col = exp.ds$MEs_col,
+        exp.ds$Gene2module,
+        modTraitCor = exp.ds$modTraitCor,
+        modTraitP = exp.ds$modTraitP,
+        textMatrix = exp.ds$textMatrix,
+        KME = exp.ds$KME
+      )
+      outrsd <<- exp.ds$data_interagrate
+    }
+  )
+  
   # download ----------------------------------------------------------------
   
   
@@ -1421,7 +1462,7 @@ server <- function(input, output, session){
       paste0("00.Retained_GeneSet_for_Next_Round.xls")
     },
     content = function(file) {
-      write.table(x = as.data.frame(exp.ds$kme_out$retain),file = file,sep = "\t",row.names = F,quote = F)
+      write.table(x = as.data.frame(exp.ds$kme_outlist$retain),file = file,sep = "\t",row.names = F,quote = F)
     }
   )
   output$downtbl_Iter_2 = downloadHandler(
@@ -1429,10 +1470,19 @@ server <- function(input, output, session){
       paste0("00.Removed_GeneSet.xls")
     },
     content = function(file) {
-      write.table(x = as.data.frame(exp.ds$kme_out$remove),file = file,sep = "\t",row.names = F,quote = F)
+      write.table(x = as.data.frame(exp.ds$kme_outlist$remove),file = file,sep = "\t",row.names = F,quote = F)
+    }
+  )
+  output$downtbl_EnvImg = downloadHandler(
+    filename = function() {
+      paste0("EnvImg.rds")
+    },
+    content = function(file) {
+      saveRDS(outrsd,file = file)
     }
   )
 }
 
 
 shinyApp(ui,server)
+
