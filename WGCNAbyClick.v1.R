@@ -3,7 +3,7 @@
 #	Assignment: WGCNA by click shiny app
 #	Author: Shawn Wang
 #	Date: Jan 12, 2021
-# Version: 0.0.5.220602
+# Version: V0.0.5.220808
 ###############################
 options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -85,7 +85,7 @@ customLogo <- shinyDashboardLogoDIY(
   boldText = "ShawnLearnBioinfo"
   ,mainText = "WGCNA by click mouse"
   ,textSize = 14
-  ,badgeText = "V0.0.5.220602"
+  ,badgeText = "V0.0.5.220808"
   ,badgeTextColor = "white"
   ,badgeTextSize = 2
   ,badgeBackColor = "#40E0D0"
@@ -960,7 +960,7 @@ server <- function(input, output, session){
                                  phen()[,-1])
       }
       exp.ds$phen =  exp.ds$phen[match(rownames(exp.ds$table2),rownames(exp.ds$phen)),]
-      exp.ds$traitout = getMt(phenotype = exp.ds$phen,MEs_col = exp.ds$MEs_col,
+      exp.ds$traitout = getMt(phenotype = exp.ds$phen,
                               nSamples = exp.ds$nSamples,moduleColors = exp.ds$moduleColors,datExpr = exp.ds$table2)
       exp.ds$xangle = as.numeric(input$xangle)
       exp.ds$c_min = as.character(input$colormin)
