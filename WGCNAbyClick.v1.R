@@ -75,7 +75,7 @@ conflict_prefer("cor","stats")
 # corType = "pearson"
 # maxPOutliers = ifelse(corType=="pearson",1,0.05)
 # robustY = ifelse(corType=="pearson",T,F)
-allowWGCNAThreads()
+# allowWGCNAThreads()
 # functions =========================
 
 # 01. UI =========================

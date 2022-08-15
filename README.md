@@ -6,6 +6,8 @@ A shiny app for WGCNA...
 
 # Getting started
 
+------------------------------------------------------------------------
+
 R version: `>4.1.1`
 
 OS: `MacOS > 10.10`, `Win 7-11`, `linux must have a graphic interface`
@@ -33,7 +35,11 @@ Rscript WGCNAbyClick.v1.R
 
 # Input data prepare
 
+------------------------------------------------------------------------
+
 ## datExpr
+
+You cant prepare your datExpr file following the [demo data]()
 
 **Data source:**
 
@@ -64,3 +70,7 @@ Rscript WGCNAbyClick.v1.R
 -   DO NOT use pure numbers as gene/metabolite/protein ID.
 
 -   Only accepted tab-delimited file, such as `.txt` or `.tsv`.
+
+## Trait table.
+
+- 
