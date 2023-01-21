@@ -73,4 +73,12 @@ You cant prepare your datExpr file following the [demo data]()
 
 ## Trait table.
 
-- 
+-   
+
+# Update
+
+<font color=red>**Jan 19 2023**</font>
+
+-  Add progress bar in module detection and module-trait step.  
+
+-  Fixed some incorrect descriptions
