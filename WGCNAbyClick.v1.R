@@ -2,8 +2,8 @@
 #	prj: shiny app
 #	Assignment: WGCNA by click shiny app
 #	Author: Shawn Wang
-#	Date: Jan 12, 2021
-# Version: V0.0.5.220808
+#	Date: Jan 21, 2023
+# Version: V0.0.6.230121
 ###############################
 options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -74,13 +74,6 @@ testInteger <- function(x){
   else { return(FALSE) }
 }
 # patch function ----------------------------------------------------------
-
-# type = "unsigned"
-# corType = "pearson"
-# maxPOutliers = ifelse(corType=="pearson",1,0.05)
-# robustY = ifelse(corType=="pearson",T,F)
-# allowWGCNAThreads()
-# functions =========================
 
 # 01. UI =========================
 ## logo
@@ -1004,8 +997,25 @@ server <- function(input, output, session){
                                  phen()[,-1])
       }
       exp.ds$phen =  exp.ds$phen[match(rownames(exp.ds$table2),rownames(exp.ds$phen)),]
-      exp.ds$traitout = getMt(phenotype = exp.ds$phen,
-                              nSamples = exp.ds$nSamples,moduleColors = exp.ds$moduleColors,datExpr = exp.ds$table2)
+      exp.ds$traitout = list()
+      exp.ds$KME = list()
+      m2t2_mess = c("Module-trait relationships ...",
+                    "Calculate KME",
+                   "Finish.")
+      withProgress(message = 'Module-trait', value = 0,
+                   expr = {
+                     for (i in 1:3) {
+                       incProgress(1/3, detail = m2t2_mess[i] )
+                       if (i == 1) {
+                         exp.ds$traitout = getMt(phenotype = exp.ds$phen,
+                                                 nSamples = exp.ds$nSamples,moduleColors = exp.ds$moduleColors,datExpr = exp.ds$table2)
+                       } else if (i == 2){
+                         exp.ds$KME = getKME(datExpr = exp.ds$table2,moduleColors = exp.ds$moduleColors,MEs_col = exp.ds$MEs_col)
+                       } else {
+                         return()
+                       }
+                     }
+                   })
       exp.ds$xangle = as.numeric(input$xangle)
       exp.ds$c_min = as.character(input$colormin)
       exp.ds$c_mid = as.character(input$colormid)
@@ -1013,7 +1023,6 @@ server <- function(input, output, session){
       exp.ds$modTraitCor = exp.ds$traitout$modTraitCor
       exp.ds$modTraitP = exp.ds$traitout$modTraitP
       exp.ds$textMatrix = exp.ds$traitout$textMatrix
-      exp.ds$KME = getKME(datExpr = exp.ds$table2,moduleColors = exp.ds$moduleColors,MEs_col = exp.ds$MEs_col)
       exp.ds$mod_color = gsub(pattern = "^..",replacement = "",rownames(exp.ds$modTraitCor))
       exp.ds$mod_color_anno = setNames(exp.ds$mod_color,rownames(exp.ds$modTraitCor))
       exp.ds$Left_anno = rowAnnotation(
@@ -1033,7 +1042,7 @@ server <- function(input, output, session){
     if(is.null(exp.ds$phen)){return()}
     
     exp.ds$heatmap = list()
-    m2t_mess = c("Module-trait relationships ...",
+    m2t_mess = c("Draw heatmap ...",
                      "Finish.")
     withProgress(message = 'Module-trait', value = 0,
                  expr = {

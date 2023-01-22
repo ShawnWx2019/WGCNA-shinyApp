@@ -46,6 +46,8 @@ You cant prepare your datExpr file following the [demo data]()
 -   transcriptomics
 
     -   readcount.
+    
+    -   expected count
 
     -   normalized readcount (FPKM, RPKM, TPM, CPM)
 
@@ -57,7 +59,7 @@ You cant prepare your datExpr file following the [demo data]()
 
 -   proteomics,
 
-    -protein abundance.
+    -   protein abundance.
 
 -   ...
 
@@ -71,14 +73,28 @@ You cant prepare your datExpr file following the [demo data]()
 
 -   Only accepted tab-delimited file, such as `.txt` or `.tsv`.
 
+
+
 ## Trait table.
 
--   
 
-# Update
 
-<font color=red>**Jan 19 2023**</font>
+# Update  
 
--  Add progress bar in module detection and module-trait step.  
+------------------------------------------------------------------------  
 
--  Fixed some incorrect descriptions
+<font color=red>**Jan 21 2023**</font>   <font color=green>**V0.0.6.230121**</font>
+
+-   🍿 + New options of input data format.
+
+-   🍿 + Ceil expected count.
+
+-   🍬 + Progress bar in module detection and module-trait step.
+
+-   🐛 + Modified some inappropriate descriptions.
+
+-   ⭐️ + Outlier remove.
+
+-   ⭐️ + IterativeWGCNA.
+
+-   🍀 + Export parameter.
