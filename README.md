@@ -33,6 +33,21 @@ Rscript WGCNAbyClick.v1.R
 
 ![](images/paste-52ABF860.png)
 
+## Method 3. TBtools plugin | WGCNA shiny 
+
+You can get TBtools from [CJ-Chen/TBtools](https://github.com/CJ-Chen/TBtools)  
+
+If you've utilized TBtools for your analysis, please cite:
+
+Chen C, Chen H, Zhang Y, Thomas HR, Frank MH, He Y, Xia R. TBtools: An Integrative Toolkit Developed for Interactive Analyses of Big Biological Data. Mol Plant. 2020 Aug 3;13(8):1194-1202. doi: [10.1016/j.molp.2020.06.009](https://doi.org/10.1016/j.molp.2020.06.009). 
+
+Follow the following steps to install `RServer.plugin` and `WGCNA shiny.plugin`
+
+![](images/Step0-1.png)
+![](images/Step0-2.png)
+![](images/Step0-3.png)
+
+
 # Input data prepare
 
 ------------------------------------------------------------------------
@@ -166,6 +181,9 @@ According to the [WGCNA FAQ](https://horvath.genetics.ucla.edu/html/Coexpression
 
 ![](images/Step1-1.png)
 ![](images/Step1-2.png)
+![](images/Step1-3.png)
+
+## Step2. Expression matrix filtering
 
 
 
