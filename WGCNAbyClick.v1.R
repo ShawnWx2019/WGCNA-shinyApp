@@ -67,7 +67,7 @@ conflict_prefer("filter","dplyr")
 conflict_prefer("rename","dplyr")
 conflict_prefer("desc","dplyr")
 conflict_prefer("cor","stats")
-
+WGCNA::allowWGCNAThreads(nThreads = 5)
 testInteger <- function(x){
   test <- all.equal(x, as.integer(x), check.attributes = FALSE)
   if(test == TRUE){ return(TRUE) }
@@ -794,13 +794,13 @@ server <- function(input, output, session){
     input$Startremove,
     {
       exp.ds$outliersamples = as.character(input$outlier)
-      if(!exp.ds$outliersamples%in%s_outlier()) {return()} else {
+      if(!exp.ds$outliersamples[1]%in%s_outlier()) {return()} else {
         exp.ds$rmoutlier = 
           mv_outlier(x = data(),y = exp.ds$outliersamples)
       }
       output$new_mat_preview = DT::renderDataTable({
         if(is.null(exp.ds$table2)){return()}
-        if(!exp.ds$outliersamples%in%s_outlier()) {return()}
+        if(!exp.ds$outliersamples[1]%in%s_outlier()) {return()}
         as.data.frame(exp.ds$rmoutlier)
       })
     }
@@ -1213,6 +1213,7 @@ server <- function(input, output, session){
                                 datTrait = exp.ds$phen,
                                 g2m = exp.ds$Gene2module
       )
+      
     }
   )
   
@@ -1354,7 +1355,7 @@ server <- function(input, output, session){
       downloads$height10 <-  as.numeric(input$height10)
     }
   )
-  library(ape)
+
   output$downfig1 = downloadHandler(
     filename = function() {
       "01.SampleCluster.nwk"

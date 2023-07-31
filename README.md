@@ -45,11 +45,11 @@ You cant prepare your datExpr file following the [demo data]()
 
 -   transcriptomics
 
-    -   readcount.
-    
+    -   readcount. 
+
     -   expected count
 
-    -   normalized readcount (FPKM, RPKM, TPM, CPM)
+    -   normalized readcount (FPKM, RPKM, TPM, CPM) [demodata]()
 
     -   microarray data
 
@@ -73,17 +73,13 @@ You cant prepare your datExpr file following the [demo data]()
 
 -   Only accepted tab-delimited file, such as `.txt` or `.tsv`.
 
-
-
 ## Trait table.
 
+# Update
 
+------------------------------------------------------------------------
 
-# Update  
-
-------------------------------------------------------------------------  
-
-<font color=red>**Jan 21 2023**</font>   <font color=green>**V0.0.6.230121**</font>
+<font color=red>**Jan 21 2023**</font> <font color=green>**V0.0.6.230121**</font>
 
 -   🍿 + New options of input data format.
 
