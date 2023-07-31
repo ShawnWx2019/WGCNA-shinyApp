@@ -388,10 +388,9 @@ Rscript WGCNAbyClick.v1.R
 <div id="input-data-prepare" class="section level1">
 <h1>Input data prepare</h1>
 <hr />
-<div id="datexpr" class="section level2">
-<h2>datExpr</h2>
-<p>You cant prepare your datExpr file following the <a href>demo
-data</a></p>
+<div id="expression-matrix" class="section level2">
+<h2>Expression matrix</h2>
+<p>You can prepare your datExpr file following the <a href="Demo/WGCNA_fpkm_data.txt">Expression matrix flie</a></p>
 <p><strong>Data source:</strong></p>
 <ul>
 <li><p>transcriptomics</p>
@@ -407,7 +406,8 @@ data</a></p>
 </ul></li>
 <li><p>proteomics,</p>
 <ul>
-<li>protein abundance.</li>
+<li><p>protein abundance.</p></li>
+<li><p>corrected intensity</p></li>
 </ul></li>
 <li><p>…</p></li>
 </ul>
@@ -415,15 +415,234 @@ data</a></p>
 <ul>
 <li><p>Gene/metabolite/protein ID in row and sample ID in
 column.</p></li>
-<li><p>The sample ID should not contain spaces, special symbols, and
-should not start with numbers.</p></li>
+<li><p>The sample ID should not contain spaces (), special symbols
+(<code>- @ * &amp; #</code>) etc., and should not start with
+numbers.</p></li>
 <li><p>DO NOT use pure numbers as gene/metabolite/protein ID.</p></li>
 <li><p>Only accepted tab-delimited file, such as <code>.txt</code> or
-<code>.tsv</code>.</p></li>
+<code>.tsv</code>, DO NOT use <code>.csv</code>, <code>.xlsx</code>,
+<code>.xls</code>.</p></li>
 </ul>
 </div>
 <div id="trait-table." class="section level2">
 <h2>Trait table.</h2>
+<p>You can prepare your trait file following the <a href="Demo/WGCNA_data_trait.txt">trait data file</a> The data can be
+quantitative traits or qualitative traits.</p>
+<p><strong>For qualitative:</strong></p>
+<p><em>format1.</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>sample_id</th>
+<th>type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>S_0001</td>
+<td>treat</td>
+</tr>
+<tr class="even">
+<td>S_0002</td>
+<td>treat</td>
+</tr>
+<tr class="odd">
+<td>S_0003</td>
+<td>treat</td>
+</tr>
+<tr class="even">
+<td>S_0004</td>
+<td>control</td>
+</tr>
+<tr class="odd">
+<td>S_0005</td>
+<td>control</td>
+</tr>
+<tr class="even">
+<td>S_0006</td>
+<td>control</td>
+</tr>
+</tbody>
+</table>
+<p>if the input trait data have only 2 columns, the format1 will be
+automaticly transformed to format2.</p>
+<p><em>format2.</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>sample_id</th>
+<th>treat</th>
+<th>control</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>S_0001</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>S_0002</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>S_0003</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>S_0004</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>S_0005</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>S_0006</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For quantitative:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>sample_id</th>
+<th>plant_height</th>
+<th>yield</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>S_0001</td>
+<td>12</td>
+<td>1920</td>
+</tr>
+<tr class="even">
+<td>S_0002</td>
+<td>14</td>
+<td>1930</td>
+</tr>
+<tr class="odd">
+<td>S_0003</td>
+<td>13</td>
+<td>1919</td>
+</tr>
+<tr class="even">
+<td>S_0004</td>
+<td>20</td>
+<td>3020</td>
+</tr>
+<tr class="odd">
+<td>S_0005</td>
+<td>25</td>
+<td>3021</td>
+</tr>
+<tr class="even">
+<td>S_0006</td>
+<td>22</td>
+<td>3320</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="step-by-step-analysis" class="section level1">
+<h1>Step by step analysis</h1>
+<hr />
+<div id="step1.-expression-matrix-filtering" class="section level2">
+<h2>Step1. Expression matrix filtering</h2>
+<p>According to the <a href="https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/faq.html">WGCNA
+FAQ</a>, the expression data we input needs to undergo data cleaning
+before it can be used for WGCNA analysis. We have processed the data as
+follows:</p>
+<ol style="list-style-type: decimal">
+<li>For read count values in RNAseq data, we need to normalize them
+using the <code>vst</code> function from <code>DESeq2</code>. For
+already normalized count values, such as FPKM, RPKM, TPM values, etc.,
+we can use the original values, or transform them using log10(x+1).</li>
+</ol>
+<blockquote>
+<p>“We then recommend a variance-stabilizing transformation. For
+example, package DESeq2 implements the function
+varianceStabilizingTransformation which we have found useful, but one
+could also start with normalized counts (or RPKM/FPKM data) and
+log-transform them using log2(x+1). For highly expressed features, the
+differences between full variance stabilization and a simple log
+transformation are small.”</p>
+</blockquote>
+<ol start="2" style="list-style-type: decimal">
+<li>For noise removal, a specific explanation can be referred to:</li>
+</ol>
+<blockquote>
+<p>“We suggest removing features whose counts are consistently low (for
+example, removing all features that have a count of less than say 10 in
+more than 90% of the samples) because such low-expressed features tend
+to reflect noise and correlations based on counts that are mostly zero
+aren’t really meaningful. The actual thresholds should be based on
+experimental design, sequencing depth and sample counts.”</p>
+</blockquote>
+<ol start="3" style="list-style-type: decimal">
+<li>Filter the top N genes with the greatest variation through median
+absolute deviation (MAD) or based on variance (VAR) for subsequent
+analysis.</li>
+</ol>
+<blockquote>
+<p>“Probesets or genes may be filtered by mean expression or variance
+(or their robust analogs such as median and median absolute deviation,
+MAD) since low-expressed or non-varying genes usually represent noise.
+Whether it is better to filter by mean expression or variance is a
+matter of debate; both have advantages and disadvantages, but more
+importantly, they tend to filter out similar sets of genes since mean
+and variance are usually related.”</p>
+</blockquote>
+<p><strong>Parameters:</strong></p>
+<p><code>Format</code>:</p>
+<ul>
+<li><code>count</code>, integer, read count from RNAseq data<br />
+</li>
+<li><code>expected count</code>, float, expected count generated by
+<code>RSEM</code>,<br />
+</li>
+<li><code>normalized count</code>, float, normalized expression levels,
+such as FPKM, RPKM, or TPM<br />
+</li>
+<li><code>peak area</code>, float, peak area of metabolites produced by
+LC-MS. Typically, we perform data cleaning and normalization on the peak
+area in the analysis results.<br />
+</li>
+<li><code>protein abundance</code>, the results from software like PD
+might be protein abundance, while MaxQuant might provide corrected
+intensity. Both can be used. However, when the input is corrected
+intensity, the values are less than 1. In this case, be mindful of the
+threshold selection in subsequent filtering.</li>
+</ul>
+<p><code>Normalized method</code></p>
+<ul>
+<li><p><code>raw</code> use the raw value.</p></li>
+<li><p><code>logarithm</code> use log10(x+1)</p></li>
+<li><p><code>Sample percentage</code> 0-1, In <strong>what</strong>
+percentage of samples does the expression level fall below the
+cutoff</p></li>
+<li><p><code>Expression Cutoff</code> numeric, In what percentage of
+samples does the expression level fall below <strong>the
+cutoff</strong></p></li>
+</ul>
+<p><code>Filter Method</code></p>
+<ul>
+<li><p><code>MAD</code> median absolute deviation</p></li>
+<li><p><code>SVR</code> variance</p></li>
+</ul>
+<p><code>Reserved genes Num</code> integer, How many genes would you
+like to retain for WGCNA analysis after the filtering process? Please
+note, if this number surpasses the count of genes remaining after
+filtering, all the filtered genes will be preserved.</p>
+<p><img src="images/Step1-1" /> <img src="images/Step1-2" /></p>
 </div>
 </div>
 <div id="update" class="section level1">

@@ -1,0 +1,8 @@
+App=WGCNA shiny
+Script=WGCNAbyClick.v1.R
+# Optional
+Icon=Icon.png
+# Optional
+Layout=4
+# Optional
+Link=https://github.com/ShawnWx2019/WGCNA-shinyApphttps://gitee.com/shawnmagic/swtbplugin
