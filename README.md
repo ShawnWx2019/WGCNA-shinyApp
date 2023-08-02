@@ -12,6 +12,8 @@ R version: `>4.1.1`
 
 OS: `MacOS > 10.10`, `Win 7-11`, `linux must have a graphic interface`
 
+## started with R or Rstudio
+
 ``` bash
 # clone this repo to your machine
 git clone git@github.com:ShawnWx2019/WGCNA-shinyApp.git WGCNAshiny
@@ -33,13 +35,14 @@ Rscript WGCNAbyClick.v1.R
 
 ![](images/paste-52ABF860.png)
 
-## Method 3. TBtools plugin | WGCNA shiny 
+## Started with TBtools plugin 
 
 You can get TBtools from [CJ-Chen/TBtools](https://github.com/CJ-Chen/TBtools)  
 
-If you've utilized TBtools for your analysis, please cite:
+**If you've utilized TBtools for your analysis, please cite:**
 
 Chen C, Chen H, Zhang Y, Thomas HR, Frank MH, He Y, Xia R. TBtools: An Integrative Toolkit Developed for Interactive Analyses of Big Biological Data. Mol Plant. 2020 Aug 3;13(8):1194-1202. doi: [10.1016/j.molp.2020.06.009](https://doi.org/10.1016/j.molp.2020.06.009). 
+
 
 Follow the following steps to install `RServer.plugin` and `WGCNA shiny.plugin`
 
@@ -212,9 +215,74 @@ Topological Overlap Matrix: Calculate the topological overlap between genes, whi
 
 Gene Module Detection: Use hierarchical clustering methods to cluster the genes in the topological overlap matrix into different modules. These modules are a set of highly co-expressed genes.
 
-**Parameters: **
+**Parameters:**
 
-`min Module Size` 
+`min Module Size` The minimum number of genes to form a module implies that if there are not enough genes, they cannot be divided into a module.
+
+`module cuttree height` Refers to the threshold set on the hierarchical clustering dendrogram, which determines the partitioning of genes into distinct modules.
+
+`select max blocksize` When calculating correlations, if you input tens of thousands of genes, the calculation requires a large amount of memory. If there is insufficient memory, the calculation will be terminated. At this point, you need to divide the genes into different blocks, calculate separately, divide the modules, and finally merge the modules. Of course, our suggestion is to put as many genes as possible into one block. The table below shows the theoretical relationship between memory size and max block size.
+
+memory|block size
+---|---
+8G | 5000-10000
+16G | 10000-20000
+32G | 20000-30000
+64G | 30000-40000
+
+**step by step**
+
+![](images/Step3-1.png)  
+![](images/Step3-2.png)
+
+## Step4. Module-trait relationship.  
+
+After dividing genes into different modules, based on the experimental design, we need to see if these modules are associated with the traits we are testing, or with sample classification information. This step can reveal and explore the connection between modules and biological issues, and is an important part of WGCNA analysis.  
+
+Additionally, we provide a simple method for purifying modules. Inspired by [Emily et.al](https://www.biorxiv.org/content/10.1101/234062v1) , we also aim to achieve better co-expression network analysis results through iterative WGCNA. However, we did not adopt their method. We simply gradually remove genes with low kME and those that cannot be classified, resulting in a more purified module division.  
+
+To facilitate the reproduction of previous data analysis processes, or to conduct further analysis in R, we have saved the variables prior to module construction.  
+
+**Parameters:**  
+
+「NOTICE」For iterative WGCNA, Method 1 is not work for now, please use method 2.  
+
+`KME cutoff` numeric, Remove genes with the kME cutoff of each module.  
+
+`Choose method`,  
+    method 1: not work now  
+    method 2: recommanded.
+
+**step by step**  
+
+![](images/Step4-1.png)  
+![](images/Step4-2.png)  
+![](images/Step4-3.png)  
+![](images/Step4-4.png)  
+
+## Step5. Interested module and hubgene.  
+
+After obtaining the modules of interest through module-trait, we want to see the specific relationship between the module and the traits. In subsequent steps, we can calculate the correlation between genes within the module and the phenotype to get Gene Significance (GS), and calculate the correlation between the gene and the module eigengene to get Module Membership (MM). A higher MM indicates that the gene is in a hub position in the co-expression network constructed by the module, and a high GS indicates that the gene's expression pattern is highly correlated with the phenotype, and is likely to affect the formation of the trait. In this way, we have found the key genes controlling the phenotype and the gene co-expression network driven by them.
+
+If your analysis does not include trait data, you can select the genes with the highest kME values in each module as hubgenes based on the previous kME table. Alternatively, you can group the materials according to the materials, and then try the following steps. However, when determining whether it is a hubgene, you only need to consider MM, not GS, after all, your biological significance is not mainly about sample classification, and the significant relationship between the module and sample classification is not your focus. Your focus should be on the function of each module and the core of the co-expression network. This experimental design suggests that after the module division is completed, perform enrichment analysis for each module, find the module related to the biological issue you are concerned about, and then find the hubgenes of the module via only MM (kME).
+
+
+**parameters**
+
+`cutoff of absoulute value of kME`  Generally, it is required to be above 0.8. If it's too low, the module division may not be appropriate.  
+
+`cutoff of absoulute value of GS`  Generally, it is required to be above 0.5.   
+
+`weight threshold` Generally, it is required to be above 0.02. If the module is large and there are many edge results, the visualization can be quite messy, so you can appropriately increase the weight threshold.  
+
+**Step by Step**  
+
+![](images/Step5-1.png)  
+![](images/Step5-2.png)  
+![](images/Step5-3.png)  
+![](images/Step5-4.png)  
+![](images/Step5-5.png)
+
 
 # Update
 

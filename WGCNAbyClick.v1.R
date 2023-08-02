@@ -3,7 +3,7 @@
 #	Assignment: WGCNA by click shiny app
 #	Author: Shawn Wang
 #	Date: Jan 21, 2023
-# Version: V0.0.6.230121
+# Version: V0.1.0
 ###############################
 options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -82,7 +82,7 @@ customLogo <- shinyDashboardLogoDIY(
   boldText = "ShawnLearnBioinfo"
   ,mainText = "WGCNA by click mouse"
   ,textSize = 14
-  ,badgeText = "V0.0.6.230118"
+  ,badgeText = "V0.1.0"
   ,badgeTextColor = "white"
   ,badgeTextSize = 2
   ,badgeBackColor = "#40E0D0"
