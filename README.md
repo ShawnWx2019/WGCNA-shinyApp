@@ -46,7 +46,7 @@ Follow the following steps to install `RServer.plugin` and `WGCNA shiny.plugin`
 ![](images/Step0-1.png)
 ![](images/Step0-2.png)
 ![](images/Step0-3.png)
-
+![](images/Step0-4.png)
 
 # Input data prepare
 
@@ -179,13 +179,42 @@ According to the [WGCNA FAQ](https://horvath.genetics.ucla.edu/html/Coexpression
 
 `Reserved genes Num` integer, How many genes would you like to retain for WGCNA analysis after the filtering process? Please note, if this number surpasses the count of genes remaining after filtering, all the filtered genes will be preserved.
 
+**Step by step**
 ![](images/Step1-1.png)
 ![](images/Step1-2.png)
 ![](images/Step1-3.png)
 
-## Step2. Expression matrix filtering
+## Step2. selection and validation of the soft-threshold
+
+In the construction of a weighted co-expression network, we need to select an appropriate soft-thresholding value to build a scale-free network. The criteria for judging whether the soft-thresholding value is appropriate generally consider that the closer the mean connectivity is to 0 and the signed R^2 is to 1 under this power value, the closer the network is to a scale-free network. However, the power should not be too large, as a larger power value may lead to a higher false positive rate. Therefore, we usually choose the power value that first crosses the R2 threshold line and has a mean connectivity closest to 0 under this power value as the soft-thresholding value for subsequent analysis.
+
+**Parameters:**
+
+`R^2 cutoff` numeric, cutoff of scale-free topology model fit.
+
+`Power type` If the recommended power value provided by the software is suitable, select 'recommend'. If it is found to be unsuitable, choose an appropriate threshold based on the two graphs on the right, then change this option to 'customized', and select the threshold you want to use in 'final power selection'.
+
+**Step by step**
+
+![](images/Step2-1.png)
+![](images/Step2-2.png)
 
 
+## Step3. One step network construction and module detection.
+
+**Steps for scale-free network construction**：  
+
+Similarity Matrix Construction: Calculate the correlation between all genes, usually using the Pearson correlation coefficient. This results in a similarity matrix.
+
+Weighted Similarity Matrix: Transform the similarity matrix into a weighted similarity matrix. This is achieved by raising each element in the similarity matrix to a positive power β (β>1). The choice of β is to make the network satisfy scale-free distribution.
+
+Topological Overlap Matrix: Calculate the topological overlap between genes, which reflects how similar the neighbors of two genes are. The purpose of this step is to reduce noise and sparsity.
+
+Gene Module Detection: Use hierarchical clustering methods to cluster the genes in the topological overlap matrix into different modules. These modules are a set of highly co-expressed genes.
+
+**Parameters: **
+
+`min Module Size` 
 
 # Update
 
