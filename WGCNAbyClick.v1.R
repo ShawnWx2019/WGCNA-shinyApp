@@ -1,6 +1,7 @@
 ###############################
 #	prj: shiny app
-#	Assignment: WGCNA by click shiny app
+#	Assignment: 加权共表达网络（WGCNA）分析
+# Version: V1.0.0
 #	Author: Shawn Wang
 #	Date: Jan 21, 2023
 # Version: V0.1.0
@@ -79,10 +80,10 @@ testInteger <- function(x){
 ## logo
 customLogo <- shinyDashboardLogoDIY(
   
-  boldText = "ShawnLearnBioinfo"
-  ,mainText = "WGCNA by click mouse"
+  boldText = "WGCNA-shinyapp"
+  ,mainText = "ShawnLearnBioinfo"
   ,textSize = 14
-  ,badgeText = "V0.1.0"
+  ,badgeText = "V1.0.0"
   ,badgeTextColor = "white"
   ,badgeTextSize = 2
   ,badgeBackColor = "#40E0D0"
@@ -116,6 +117,12 @@ ui <- shinyUI(
                        ),
                        p("Normalized included: DEseq2::vst (for count and expected count) \nraw data \nlog10(x + 1) (for normalized data)  \nlog(x) for metabolomics or proteomics data",
                          style = "color: #7a8788;font-size: 12px; font-style:Italic"),
+                       radioButtons(
+                         inputId = "networktype",
+                         label = "network type",
+                         choices = c("unsigned","signed"),
+                         selected = 'unsigned'
+                       ),
                        selectInput(
                          inputId = "method1",
                          label = "Normalized method",
@@ -710,6 +717,9 @@ server <- function(input, output, session){
   cutmethod = reactive({
     input$CutMethod
   })
+  networktype = reactive({
+    as.character(input$networktype)
+  })
   ## set reactiveValues
   exp.ds<-reactiveValues(data=NULL)
   downloads <- reactiveValues(data = NULL)
@@ -718,6 +728,7 @@ server <- function(input, output, session){
     {
       if(is.null(data())){return()}
       if(length(which(is.na(data()))) != 0) {return()}
+      
       exp.ds$table = data.frame()
       exp.ds$table2 = data.frame()
       exp.ds$param = list()
@@ -828,7 +839,7 @@ server <- function(input, output, session){
                        for (i in 1:2) {
                          incProgress(1/2, detail = sft_mess[i] )
                          if (i == 1) {
-                           exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut())
+                           exp.ds$sft = getpower(datExpr = exp.ds$table2,rscut = rscut(),type = networktype())
                          } else {
                            return()
                          }
@@ -879,10 +890,10 @@ server <- function(input, output, session){
                        if (i == 1) {
                          if(PowerTorF() == "Recommended"){
                            exp.ds$power = exp.ds$sft$power
-                           exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
+                           exp.ds$cksft = powertest(power.test = exp.ds$sft$power,datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes,type = networktype())
                          } else if (PowerTorF() == "Customized"){
                            exp.ds$power = pcus()
-                           exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes)
+                           exp.ds$cksft = powertest(power.test = pcus(),datExpr = exp.ds$table2,nGenes = exp.ds$param$nGenes,type = networktype())
                          }
                        } else {
                          return()
@@ -1211,7 +1222,8 @@ server <- function(input, output, session){
                                 GS.cut = exp.ds$GScut,
                                 kME.cut =exp.ds$kMEcut,
                                 datTrait = exp.ds$phen,
-                                g2m = exp.ds$Gene2module
+                                g2m = exp.ds$Gene2module,
+                                type = networktype()
       )
       
     }
@@ -1224,7 +1236,7 @@ server <- function(input, output, session){
       exp.ds$cyt = cytoscapeout(datExpr = exp.ds$table2,
                                 power = exp.ds$power,module = exp.ds$hubml,
                                 moduleColors = exp.ds$moduleColors,
-                                threshold = exp.ds$threshold)
+                                threshold = exp.ds$threshold,type = networktype())
     }
   )
   # checkAdjMat
@@ -1551,8 +1563,7 @@ server <- function(input, output, session){
     }
   )
 }
-
-
+## run
 shinyApp(ui,server,
          options = list(launch.browser = TRUE)
          )
